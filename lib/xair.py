@@ -65,13 +65,13 @@ class XAirClient:
         
     def msg_handler(self, addr, *data):
             #print 'OSCReceived("%s", %s, %s)' % (addr, tags, data)
-            if addr.endswith('/fader') or addr.endswith('/on') or addr.endswith('/level') or addr.startswith('/config/mute') or addr.startswith('/fx/'):
+            if addr.endswith('/fader') or addr.endswith('/on') or addr.endswith('/level') or addr.startswith('/config/mute') or addr.endswith('/gain'):
                 self.state.received_osc(addr, data[0])
             elif addr == '/xinfo':
                 self.info_response = data[:]
     
     def refresh_connection(self):
-        # Tells mixer to send changes in state that have not been recieved from this OSC Client
+        # Tells mixer to send changes in state that have not been received from this OSC Client
         #   /xremote        - all parameter changes are broadcast to all active clients (Max 4)
         #   /xremotefnb     - No Feed Back. Parameter changes are only sent to the active clients which didn't initiate the change
         try:
