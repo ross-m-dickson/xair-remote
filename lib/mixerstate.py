@@ -79,14 +79,14 @@ class MixerState:
             Channel('/headamp/16')
         ],
         [
-            Channel('/lr/mix'),
-            Channel('/rtn/aux/mix'),
             Channel('/bus/1/mix'),
             Channel('/bus/2/mix'),
             Channel('/bus/3/mix'),
             Channel('/bus/4/mix'), 
             Channel('/bus/5/mix'),
-            Channel('/bus/6/mix')
+            Channel('/bus/6/mix'),
+            Channel('/rtn/aux/mix'),
+            Channel('/lr/mix')
         ]
     ]
     
