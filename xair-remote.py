@@ -18,7 +18,7 @@ if __name__ == '__main__':
     """,
     epilog= """
     Bank 1-6 - Aux Bus 1-6 levels for Channels 1-8 and 9-16.
-    Bank 7 - TBD
+    Bank 7 - Aux Bus 7 aka FX 1 for Channels 1-8 and 9-16.
     Bank 8 - Mic PreAmp levels for Channels 1-8 and 9-16.
     Layer A - Main LR Mix levels of Channels 1-8 and 9-16 on second layer.
     Layer B - Aux Bus 1-6 output levels, USB IN Gain, Main/LR Bus output level.
