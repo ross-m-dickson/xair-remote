@@ -92,9 +92,9 @@ class MidiController:
                             delta = (delta - 64) * -1
                         if self.state.active_bus < 6: # one of the 6 AUX bus
                             self.state.change_bus_send(self.state.active_bus, self.MIDI_ENCODER.index(msg.control), delta)
-                        elif self.state.active_bus == 6: # preamp gain
+                        elif self.state.active_bus == 7: # preamp gain
                              self.state.change_headamp(self.MIDI_ENCODER.index(msg.control), delta)
-                        # elif self.state.active_bus == 7: # Currently button #8 is used as a mode switch
+                        # elif self.state.active_bus == 6: # Currently button #7 is unused
                         else: # channels faders and output faders
                             self.state.change_fader(self.MIDI_ENCODER.index(msg.control), delta)
                     else:
@@ -139,18 +139,18 @@ class MidiController:
         elif self.state.active_bus == 8:    # channel levels
             self.state.set_fader(knob, 0.750000)
         elif self.state.active_bus == 9:
-            if knob == 1:                   # USB Return
+            if knob == 6:                   # USB Return
                 self.state.set_fader(knob, 0.750000)
             else:                           # output levels -20 db
                 self.state.set_fader(knob, 0.375367)
-        #elif knob == 7:                    # no obvious default for mic pre
+        #elif self.state.active_bus == 7:   # no obvious default for mic pre
             #self.state.toggle_mpc()
 
     def activate_bus(self, bus):
         if self.debug:
             print('Activating bus {}'.format(bus))
         # set LEDs and layer
-        if self.state.active_bus == bus and bus not in [7,9]:
+        if self.state.active_bus == bus and bus not in [6,7,9]:
             # switch layers for buttons with layers
             if self.active_layer == 0:
                 self.set_button(bus + 8, self.LED_BLINK)
@@ -158,29 +158,24 @@ class MidiController:
             else:
                 self.set_button(bus + 8, self.LED_ON)
                 self.active_layer = 0
-        elif bus == 7: # need to fix
-            self.set_button(bus + 8, self.LED_ON)
-        else:
+        elif bus == 6: # unused
+            pass
+            #self.set_button(bus + 8, self.LED_ON)
+        else: # switching to a different bus, or one that only has a single layer
             self.set_button(self.state.active_bus + 8, self.LED_OFF)
             self.set_button(bus + 8, self.LED_ON)
             self.active_layer = 0
         # set bus and bank
-        if bus == 6:
-            if self.active_layer == 0:
-                self.state.active_bank = 2
-            else:
-                self.state.active_bank = 3
+        if bus == 7: # set mic pre banks
+            self.state.active_bank = self.active_layer + 2
             self.state.active_bus = bus
-        elif bus == 9:
+        elif bus == 9: # set outputs bank
             self.state.active_bank = 4
             self.state.active_bus = bus
-        elif bus == 7:
+        elif bus == 6: # unused
             pass
-        else:
-            if self.active_layer == 0:
-                self.state.active_bank = 0
-            else:
-                self.state.active_bank = 1
+        else: # 
+            self.state.active_bank = self.active_layer
             self.state.active_bus = bus
 
         for i in range(0, 8):
