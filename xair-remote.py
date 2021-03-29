@@ -18,10 +18,10 @@ if __name__ == '__main__':
     """,
     epilog= """
     Bank 1-6 - Aux Bus 1-6 levels for Channels 1-8 and 9-16.
-    Bank 7 - Mic PreAmp levels for Channels 1-8 and 9-16.
-    Bank 8 - TBD
+    Bank 7 - TBD
+    Bank 8 - Mic PreAmp levels for Channels 1-8 and 9-16.
     Layer A - Main LR Mix levels of Channels 1-8 and 9-16 on second layer.
-    Layer B - Master/Mix levels for Main/LR Bus, USB IN, Aux Bus 1-6.
+    Layer B - Aux Bus 1-6 output levels, USB IN Gain, Main/LR Bus output level.
     """,
     formatter_class=argparse.RawDescriptionHelpFormatter)
     # the fader is not used as I don't have a good global use and a bank
