@@ -90,11 +90,10 @@ class MidiController:
                         delta = msg.value
                         if delta > 64:
                             delta = (delta - 64) * -1
-                        if self.state.active_bus < 6: # one of the 6 AUX bus
+                        if self.state.active_bus < 7: # one of the 7 AUX bus
                             self.state.change_bus_send(self.state.active_bus, self.MIDI_ENCODER.index(msg.control), delta)
                         elif self.state.active_bus == 7: # preamp gain
                              self.state.change_headamp(self.MIDI_ENCODER.index(msg.control), delta)
-                        # elif self.state.active_bus == 6: # Currently button #7 is unused
                         else: # channels faders and output faders
                             self.state.change_fader(self.MIDI_ENCODER.index(msg.control), delta)
                     else:
@@ -124,9 +123,9 @@ class MidiController:
         if self.debug:
             print('Button {} pushed'.format(button))
         if button < 8: # mute button pressed, upper row
-            if self.state.active_bus < 6: # sending to a bus
+            if self.state.active_bus < 7: # sending to a bus
                 self.state.toggle_send_mute(button, self.state.active_bus)
-            # skip preamps and mode switches as meaningless
+            # skip preamps as meaningless
             elif self.state.active_bus > 7: # sending to a channel
                 self.state.toggle_channel_mute(button)
         else: # bank select button
@@ -134,7 +133,7 @@ class MidiController:
 
     def knob_pushed(self, knob):
         # reset to unity gain
-        if self.state.active_bus < 6:
+        if self.state.active_bus < 7:
             self.state.set_bus_send(self.state.active_bus, knob, 0.750000)
         elif self.state.active_bus == 8:    # channel levels
             self.state.set_fader(knob, 0.750000)
@@ -150,7 +149,7 @@ class MidiController:
         if self.debug:
             print('Activating bus {}'.format(bus))
         # set LEDs and layer
-        if self.state.active_bus == bus and bus not in [6,7,9]:
+        if self.state.active_bus == bus and bus not in [7,9]: # 7 and 9 have only one layer
             # switch layers for buttons with layers
             if self.active_layer == 0:
                 self.set_button(bus + 8, self.LED_BLINK)
@@ -158,36 +157,30 @@ class MidiController:
             else:
                 self.set_button(bus + 8, self.LED_ON)
                 self.active_layer = 0
-        elif bus == 6: # unused
-            pass
-            #self.set_button(bus + 8, self.LED_ON)
         else: # switching to a different bus, or one that only has a single layer
             self.set_button(self.state.active_bus + 8, self.LED_OFF)
             self.set_button(bus + 8, self.LED_ON)
             self.active_layer = 0
         # set bus and bank
+        self.state.active_bus = bus
         if bus == 7: # set mic pre banks
             self.state.active_bank = self.active_layer + 2
-            self.state.active_bus = bus
         elif bus == 9: # set outputs bank
             self.state.active_bank = 4
-            self.state.active_bus = bus
-        elif bus == 6: # unused
-            pass
         else: # 
             self.state.active_bank = self.active_layer
-            self.state.active_bus = bus
 
+        # reset lights
         for i in range(0, 8):
             if self.state.banks[self.state.active_bank][i] != None:
-                if self.state.active_bus >= 6:                 # send fader or preamp Layer A
+                if self.state.active_bus > 6: # send fader or preamp level
                     self.set_ring(i, self.state.banks[self.state.active_bank][i].fader)
                     self.set_channel_mute(i, self.state.banks[self.state.active_bank][i].on)
-                else:                       # send bus send
+                else:                         # send bus send
                     if self.state.banks[self.state.active_bank][i].sends != None:
                         self.set_ring(i, self.state.banks[self.state.active_bank][i].sends[self.state.active_bus])
                         self.set_channel_mute(i, self.state.banks[self.state.active_bank][i].enables[self.state.active_bus])
-            else:                           # unassigned channel, disbale encoder and button
+            else:                             # unassigned channel, disbale encoder and button
                 self.set_ring(i, -1)
                 self.set_button(i, self.LED_OFF)
 
