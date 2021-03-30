@@ -36,6 +36,7 @@ class MidiController:
     inport = None
     outport = None
     debug = False
+    worker = None
     
     def __init__(self, state):
         self.state = state
@@ -67,9 +68,9 @@ class MidiController:
         for i in range(0,18):
             self.set_button(i, self.LED_OFF)    # clear all buttons
 
-        worker = threading.Thread(target = self.midi_listener)
-        worker.daemon = True
-        worker.start()
+        self.worker = threading.Thread(target = self.midi_listener)
+        self.worker.daemon = True
+        self.worker.start()
 
     def monitor_ports(self):
         try:
