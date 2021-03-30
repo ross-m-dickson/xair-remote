@@ -38,9 +38,6 @@ class XAirRemote:
         self.state.read_initial_state()
         self.midi.activate_bus(8)                    # set chanel level as initial bus
 
-        # now refresh /xremote command while running
-        self.xair.refresh_connection()
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = """
     Remote control X-Air mixers with an X-Touch midi controller.
@@ -67,4 +64,6 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--debug', help='enable debug output', action="store_true")
     args = parser.parse_args()
 
-    start_xair_remote = XAirRemote(args.xair_address, args.monitor, args.debug)
+    remote = XAirRemote(args.xair_address, args.monitor, args.debug)
+    # now start polling refresh /xremote command while running
+    remote.xair.refresh_connection()
