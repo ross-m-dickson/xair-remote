@@ -5,6 +5,42 @@ from lib.midicontroller import MidiController
 from lib.xair import XAirClient, find_mixer
 from lib.mixerstate import MixerState
 
+class XAirRemote:
+    state = None
+    midi = None
+    xair = None
+
+    def __init__(self, xair_address, a_monitor, debug):
+        if xair_address is None:
+            address = find_mixer()
+            if address is None:
+                print('Error: Could not find any mixers in network. Please specify ip address manually.')
+                return
+            else:
+                xair_address = address
+
+        self.state = MixerState()
+        self.midi = MidiController(self.state)
+        self.state.midi_controller = self.midi
+        self.xair = XAirClient(xair_address, self.state)
+        self.state.xair_client = self.xair
+        self.xair.validate_connection()
+
+        self.state.debug = debug
+        self.midi.debug = debug
+
+        if a_monitor:
+            print('Monitoring X-Touch connection enabled')
+            monitor = threading.Thread(target = midi.monitor_ports)
+            monitor.daemon = True
+            monitor.start()
+
+        self.state.read_initial_state()
+        self.midi.activate_bus(8)                    # set chanel level as initial bus
+
+        # now refresh /xremote command while running
+        self.xair.refresh_connection()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = """
     Remote control X-Air mixers with an X-Touch midi controller.
@@ -31,32 +67,4 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--debug', help='enable debug output', action="store_true")
     args = parser.parse_args()
 
-    if args.xair_address is None:
-        address = find_mixer()
-        if address is None:
-            print('Error: Could not find any mixers in network. Please specify ip address manually.')
-            exit()
-        else:
-            args.xair_address = address
-
-    state = MixerState()
-    midi = MidiController(state)
-    state.midi_controller = midi
-    xair = XAirClient(args.xair_address, state)
-    state.xair_client = xair
-    xair.validate_connection()
-
-    state.debug = args.debug
-    midi.debug = args.debug
-
-    if args.monitor:
-        print('Monitoring X-Touch connection enabled')
-        monitor = threading.Thread(target = midi.monitor_ports)
-        monitor.daemon = True
-        monitor.start()
-    
-    state.read_initial_state()
-    midi.activate_bus(8)                    # set chanel level as initial bus
-
-    # now refresh /xremote command while running
-    xair.refresh_connection()
+    start_xair_remote = XAirRemote(args.xair_address, args.monitor, args.debug)
