@@ -34,6 +34,7 @@ class XAirClient:
     _REFRESH_TIMEOUT = 5
 
     XAIR_PORT = 10024
+    worker = None
 
     info_response = []
     
@@ -42,9 +43,9 @@ class XAirClient:
         dispatcher = Dispatcher()
         dispatcher.set_default_handler(self.msg_handler)
         self.server = OSCClientServer((address, self.XAIR_PORT), dispatcher)
-        worker = threading.Thread(target = self.run_server)
-        worker.daemon = True
-        worker.start()
+        self.worker = threading.Thread(target = self.run_server)
+        self.worker.daemon = True
+        self.worker.start()
     
     def validate_connection(self):
         self.send('/xinfo')
