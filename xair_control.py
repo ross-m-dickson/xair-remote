@@ -1,14 +1,16 @@
+"See help for main"
 #!/usr/bin/env python3
 import argparse
 import threading
-import xair_remote
-import os
-from lib.screen import Screen
 
 from time import sleep
+from lib.screen import Screen
+
+import xair_remote
+
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = """
+    parser = argparse.ArgumentParser(description="""
     Configure a Raspberry PI to record 18 track audio from and control X-Air
     mixers with an X-Touch midi controller. This script assumes that the PI has
     a PiFIT or similar hat that provides a framebuffer and has buttons at GPIO
@@ -31,18 +33,20 @@ if __name__ == '__main__':
     button a second time, causing the button to blink. The fader is not used.
     Pressing an encoder returns the level to unity gain, not used for mic pre.
     """,
-    epilog= """
+                                     epilog="""
     Bank 1-6 - Aux Bus 1-6 levels for Channels 1-8 and 9-16.
     Bank 7 - Aux Bus 7 aka FX 1 for Channels 1-8 and 9-16.
     Bank 8 - Mic PreAmp levels for Channels 1-8 and 9-16.
     Layer A - Main LR Mix levels of Channels 1-8 and 9-16 on second layer.
     Layer B - Aux Bus 1-6 output levels, USB IN Gain, Main/LR Bus output level.
     """,
-    formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     # the fader is not used as I don't have a good global use and a bank
     # specific use doesn't work well with a non moving fader
-    parser.add_argument('xair_address', help = 'ip address of your X-Air mixer (optional)', nargs = '?')
-    parser.add_argument('-m', '--monitor', help='monitor X-Touch connection and exit when disconnected', action="store_true")
+    parser.add_argument('xair_address', help='ip address of your X-Air mixer (optional)', nargs='?')
+    parser.add_argument('-m', '--monitor',
+                        help='monitor X-Touch connection and exit when disconnected',
+                        action="store_true")
     parser.add_argument('-d', '--debug', help='enable debug output', action="store_true")
     args = parser.parse_args()
 
@@ -53,18 +57,5 @@ if __name__ == '__main__':
     screen_obj = Screen()
     screen_obj.screen_loop()
 
-
-
-while True:
-    if button17.is_pressed:
-        print("Pressed 17")
-    if button22.is_pressed:
-        print("pressed 22")
-    if button23.is_pressed:
-        print("pressed 23")
-    if button27.is_pressed:
-        print("pressed 27")
-    sleep(.5)
-
-
-# 23, #22, #21, and #18 t
+    while True:
+        sleep(5)
