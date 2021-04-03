@@ -1,3 +1,4 @@
+"Starts an xAir remote, see main help string for more"
 #!/usr/bin/env python3
 import argparse
 import threading
@@ -6,6 +7,7 @@ from lib.xair import XAirClient, find_mixer
 from lib.mixerstate import MixerState
 
 class XAirRemote:
+    "Initialize the XAir remote infrastructure"
     state = None
     midi = None
     xair = None
@@ -14,7 +16,8 @@ class XAirRemote:
         if xair_address is None:
             address = find_mixer()
             if address is None:
-                print('Error: Could not find any mixers in network. Please specify ip address manually.')
+                print('Error: Could not find any mixers in network.',
+                      'Please specify ip address manually.')
                 return
             else:
                 xair_address = address
@@ -31,7 +34,7 @@ class XAirRemote:
 
         if a_monitor:
             print('Monitoring X-Touch connection enabled')
-            monitor = threading.Thread(target = midi.monitor_ports)
+            monitor = threading.Thread(target=self.midi.monitor_ports)
             monitor.daemon = True
             monitor.start()
 
@@ -39,7 +42,7 @@ class XAirRemote:
         self.midi.activate_bus(8)                    # set chanel level as initial bus
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = """
+    PARSER = argparse.ArgumentParser(description="""
     Remote control X-Air mixers with an X-Touch midi controller.
 
     The X-Touch is setup so that the encoders are configured as faders on any of
@@ -49,21 +52,23 @@ if __name__ == '__main__':
     button a second time, causing the button to blink. The fader is not used.
     Pressing an encoder returns the level to unity gain, not used for mic pre.
     """,
-    epilog= """
+                                     epilog="""
     Bank 1-6 - Aux Bus 1-6 levels for Channels 1-8 and 9-16.
     Bank 7 - Aux Bus 7 aka FX 1 for Channels 1-8 and 9-16.
     Bank 8 - Mic PreAmp levels for Channels 1-8 and 9-16.
     Layer A - Main LR Mix levels of Channels 1-8 and 9-16 on second layer.
     Layer B - Aux Bus 1-6 output levels, USB IN Gain, Main/LR Bus output level.
     """,
-    formatter_class=argparse.RawDescriptionHelpFormatter)
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     # the fader is not used as I don't have a good global use and a bank
     # specific use doesn't work well with a non moving fader
-    parser.add_argument('xair_address', help = 'ip address of your X-Air mixer (optional)', nargs = '?')
-    parser.add_argument('-m', '--monitor', help='monitor X-Touch connection and exit when disconnected', action="store_true")
-    parser.add_argument('-d', '--debug', help='enable debug output', action="store_true")
-    args = parser.parse_args()
+    PARSER.add_argument('xair_address', help='ip address of your X-Air mixer (optional)', nargs='?')
+    PARSER.add_argument('-m', '--monitor',
+                        help='monitor X-Touch connection and exit when disconnected',
+                        action="store_true")
+    PARSER.add_argument('-d', '--debug', help='enable debug output', action="store_true")
+    ARGS = PARSER.parse_args()
 
-    remote = XAirRemote(args.xair_address, args.monitor, args.debug)
+    REMOTE = XAirRemote(ARGS.xair_address, ARGS.monitor, ARGS.debug)
     # now start polling refresh /xremote command while running
-    remote.xair.refresh_connection()
+    REMOTE.xair.refresh_connection()
