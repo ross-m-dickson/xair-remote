@@ -86,12 +86,12 @@ class Screen:
         #convert strings to surfaces
         self.title = title_font.render("X Air Control", 1, (self.blue))
         self.sub_title = font.render("Channel Setup", 1, (self.blue))
-        for x in range(16):
-            self.words.append(pygame.transform.rotate(font.render(self.names[x], 1, (self.red)), 315))
-            self.numbers.append(font.render("%02d" % (x+1), 1, (self.red)))
-            self.mics.append(smfont.render(self.mic[x], 1, (self.red)))
-        for x in range(12):
-            self.button_img.append(font.render(self.button_nm[x], 1, (self.blue)))
+        for j in range(16):
+            self.words.append(pygame.transform.rotate(font.render(self.names[j], 1, (self.red)), 315))
+            self.numbers.append(font.render("%02d" % (j+1), 1, (self.red)))
+            self.mics.append(smfont.render(self.mic[j], 1, (self.red)))
+        for j in range(12):
+            self.button_img.append(font.render(self.button_nm[j], 1, (self.blue)))
 
         self.title_w, self.title_h = self.title.get_size()
         self.subtitle_w, self.subtitle_h = self.sub_title.get_size()
@@ -112,18 +112,18 @@ class Screen:
             self.screen.blit(self.sub_title, (self.title_center-(self.subtitle_w/2), 40)) #  (40,40))
             # draw channel names
             pygame.draw.rect(self.screen, self.red, (self.box_left, 68, self.box_width, 170), 1)
-            for x in range(8):
-                self.screen.blit(self.numbers[x], (self.margin   + (x * self.box_width/8), 70))
-                self.screen.blit(self.words[x], (self.box_left + (x * self.box_width/8), 70+self.num_h))
-                self.screen.blit(self.mics[x], (self.box_left + (x * self.box_width/8), 135))
-                self.screen.blit(self.numbers[x+8], (self.margin   + (x * self.box_width/8), 155))
-                self.screen.blit(self.words[x+8], (self.box_left + (x * self.box_width/8), 155+self.num_h))
-                self.screen.blit(self.mics[x+8], (self.box_left + (x * self.box_width/8), 220))
-            for x in range(4):
+            for j in range(8):
+                self.screen.blit(self.numbers[j], (self.margin   + (j * self.box_width/8), 70))
+                self.screen.blit(self.words[j], (self.box_left + (j * self.box_width/8), 70+self.num_h))
+                self.screen.blit(self.mics[j], (self.box_left + (j * self.box_width/8), 135))
+                self.screen.blit(self.numbers[j+8], (self.margin   + (j * self.box_width/8), 155))
+                self.screen.blit(self.words[j+8], (self.box_left + (j * self.box_width/8), 155+self.num_h))
+                self.screen.blit(self.mics[j+8], (self.box_left + (j * self.box_width/8), 220))
+            for j in range(4):
                 pygame.draw.rect(self.screen, self.yellow,
-                                 (self.button_left, 5+(x*60), self.button_width, 50),
-                                 self.gpio_button[x].enable)
-                self.screen.blit(self.button_img[x], (self.button_left + 4, 30 + (x*60)))
+                                 (self.button_left, 5+(j*60), self.button_width, 50),
+                                 self.gpio_button[j].enable)
+                self.screen.blit(self.button_img[j], (self.button_left + 4, 30 + (j*60)))
 
             pygame.display.flip()
 
