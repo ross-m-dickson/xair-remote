@@ -1,7 +1,7 @@
+"See class docstring"
 import threading
 import time
 import os
-from .mixerstate import MixerState
 from mido import Message, open_input, open_output, get_input_names, get_output_names
 
 class MidiController:
@@ -13,7 +13,7 @@ class MidiController:
     Fader 1-8: CC16 - CC23, Note 32 - 39 on push
     Turn right: Values 1 - 10 (Increment)
     Turn left: Values 65 - 72 (Decrement)
-    Buttons 1-8: Note 89, 90, 40, 41, 42, 43, 44, 45 
+    Buttons 1-8: Note 89, 90, 40, 41, 42, 43, 44, 45
     Buttons 9-16: Note 87, 88, 91, 92, 86, 93, 94, 95
     Master Fader: Pitch Wheel
     """
@@ -37,10 +37,10 @@ class MidiController:
     outport = None
     debug = False
     worker = None
-    
+
     def __init__(self, state):
         self.state = state
-    
+
         for name in get_input_names():
             if "x-touch mini" in name.lower():
                 print('Using MIDI input: ' + name)
@@ -60,19 +60,20 @@ class MidiController:
                     print('Error: Can not open MIDI input port ' + name)
                     exit()
                 break
-        
+
         if self.inport is None or self.outport is None:
             print('X-Touch Mini not found. Make sure device is connected!')
             exit()
 
-        for i in range(0,18):
+        for i in range(0, 18):
             self.set_button(i, self.LED_OFF)    # clear all buttons
 
-        self.worker = threading.Thread(target = self.midi_listener)
+        self.worker = threading.Thread(target=self.midi_listener)
         self.worker.daemon = True
         self.worker.start()
 
     def monitor_ports(self):
+        "Method to exit if / when the X Touch disconnects"
         try:
             while True:
                 if self.inport.name not in get_input_names():
@@ -83,6 +84,7 @@ class MidiController:
             exit()
 
     def midi_listener(self):
+        "Listen to midit inputs and respond."
         try:
             for msg in self.inport:
                 #print('Received {}'.format(msg))
@@ -92,9 +94,10 @@ class MidiController:
                         if delta > 64:
                             delta = (delta - 64) * -1
                         if self.state.active_bus < 7: # one of the 7 AUX bus
-                            self.state.change_bus_send(self.state.active_bus, self.MIDI_ENCODER.index(msg.control), delta)
+                            self.state.change_bus_send( \
+                                self.state.active_bus, self.MIDI_ENCODER.index(msg.control), delta)
                         elif self.state.active_bus == 7: # preamp gain
-                             self.state.change_headamp(self.MIDI_ENCODER.index(msg.control), delta)
+                            self.state.change_headamp(self.MIDI_ENCODER.index(msg.control), delta)
                         else: # channels faders and output faders
                             self.state.change_fader(self.MIDI_ENCODER.index(msg.control), delta)
                     else:
@@ -119,8 +122,9 @@ class MidiController:
             self.inport.close()
             self.outport.close()
             exit()
-    
+
     def button_pushed(self, button):
+        "On button press, call the relevant function"
         if self.debug:
             print('Button {} pushed'.format(button))
         if button < 8: # mute button pressed, upper row
@@ -133,6 +137,7 @@ class MidiController:
             self.activate_bus(button - 8)
 
     def knob_pushed(self, knob):
+        "On knob push reset the correct value"
         # reset to unity gain
         if self.state.active_bus < 7:
             self.state.set_bus_send(self.state.active_bus, knob, 0.750000)
@@ -147,10 +152,11 @@ class MidiController:
             #self.state.toggle_mpc()
 
     def activate_bus(self, bus):
+        "chagne the active bus"
         if self.debug:
             print('Activating bus {}'.format(bus))
         # set LEDs and layer
-        if self.state.active_bus == bus and bus not in [7,9]: # 7 and 9 have only one layer
+        if self.state.active_bus == bus and bus not in [7, 9]: # 7 and 9 have only one layer
             # switch layers for buttons with layers
             if self.active_layer == 0:
                 self.set_button(bus + 8, self.LED_BLINK)
@@ -168,41 +174,48 @@ class MidiController:
             self.state.active_bank = self.active_layer + 2
         elif bus == 9: # set outputs bank
             self.state.active_bank = 4
-        else: # 
+        else:
             self.state.active_bank = self.active_layer
 
         # reset lights
         for i in range(0, 8):
-            if self.state.banks[self.state.active_bank][i] != None:
+            if self.state.banks[self.state.active_bank][i] is not None:
                 if self.state.active_bus > 6: # send fader or preamp level
                     self.set_ring(i, self.state.banks[self.state.active_bank][i].fader)
-                    self.set_channel_mute(i, self.state.banks[self.state.active_bank][i].on)
+                    self.set_channel_mute(i, self.state.banks[self.state.active_bank][i].ch_on)
                 else:                         # send bus send
-                    if self.state.banks[self.state.active_bank][i].sends != None:
-                        self.set_ring(i, self.state.banks[self.state.active_bank][i].sends[self.state.active_bus])
-                        self.set_channel_mute(i, self.state.banks[self.state.active_bank][i].enables[self.state.active_bus])
+                    if self.state.banks[self.state.active_bank][i].sends is not None:
+                        self.set_ring(i, self.state.banks[ \
+                            self.state.active_bank][i].sends[self.state.active_bus])
+                        self.set_channel_mute(i, self.state.banks[ \
+                            self.state.active_bank][i].enables[self.state.active_bus])
             else:                             # unassigned channel, disbale encoder and button
                 self.set_ring(i, -1)
                 self.set_button(i, self.LED_OFF)
 
-    def set_channel_mute(self, channel, on):
-        self.set_button(channel, self.LED_ON if on == 0 else self.LED_OFF)
+    def set_channel_mute(self, channel, ch_on):
+        "Send the mute value to the button"
+        self.set_button(channel, self.LED_ON if ch_on == 0 else self.LED_OFF)
 
     def set_channel_fader(self, channel, value):
+        "Send the fader value to the encoder ring"
         self.set_ring(channel, value)
 
     def set_ring(self, ring, value):
+        "Turn on the appropriate LEDs on the encoder ring."
         # 0 = off, 1-11 = single, 17-27 = trim, 33-43 = fan, 49-54 = spread
         # normalize value (0.0 - 1.0) to 0 - 11 range
         # values below 0 mean disabled
         if value >= 0.0:
-            self.outport.send(Message('control_change', channel = self.MC_CHANNEL, 
-                                  control = self.MIDI_RING[ring], 
-                                  value = 33 + round(value * 11)))
+            self.outport.send(Message('control_change', channel=self.MC_CHANNEL,
+                                      control=self.MIDI_RING[ring],
+                                      value=33 + round(value * 11)))
         else:
-            self.outport.send(Message('control_change', channel = self.MC_CHANNEL, 
-                                  control = self.MIDI_RING[ring], 
-                                  value = 0))
+            self.outport.send(Message('control_change', channel=self.MC_CHANNEL,
+                                      control=self.MIDI_RING[ring],
+                                      value=0))
 
-    def set_button(self, button, on):
-        self.outport.send(Message('note_on', channel = self.MC_CHANNEL, note = self.MIDI_BUTTONS[button], velocity = on))
+    def set_button(self, button, ch_on):
+        "Turn the button LED on or off"
+        self.outport.send(Message('note_on', channel=self.MC_CHANNEL,
+                                  note=self.MIDI_BUTTONS[button], velocity=ch_on))
