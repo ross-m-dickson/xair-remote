@@ -17,7 +17,7 @@ class Channel:
         else:
             self.sends = None
             self.enables = None
-        self.on = 1
+        self.ch_on = 1
         self.osc_base_addr = addr
 
 class MixerState:
@@ -94,14 +94,15 @@ class MixerState:
     def toggle_channel_mute(self, channel):
         """Toggle the state of a channel mute button."""
         if self.banks[self.active_bank][channel] is not None:
-            if self.banks[self.active_bank][channel].on == 1:
-                self.banks[self.active_bank][channel].on = 0
+            if self.banks[self.active_bank][channel].ch_on == 1:
+                self.banks[self.active_bank][channel].ch_on = 0
             else:
-                self.banks[self.active_bank][channel].on = 1
+                self.banks[self.active_bank][channel].ch_on = 1
             self.xair_client.send(
                 address=self.banks[self.active_bank][channel].osc_base_addr + '/on',
-                param=self.banks[self.active_bank][channel].on)
-            self.midi_controller.set_channel_mute(channel, self.banks[self.active_bank][channel].on)
+                param=self.banks[self.active_bank][channel].ch_on)
+            self.midi_controller.set_channel_mute(
+                channel, self.banks[self.active_bank][channel].ch_on)
 
     def toggle_send_mute(self, channel, bus):
         """Toggle the state of a send mute."""
@@ -121,13 +122,14 @@ class MixerState:
                     address=self.banks[self.active_bank][channel].osc_base_addr +
                     '/{:0>2d}/level'.format(bus + 1),
                     param=self.banks[self.active_bank][channel].sends[bus])
-            self.midi_controller.set_channel_mute(channel,
-                                            self.banks[self.active_bank][channel].enables[bus])
+            self.midi_controller.set_channel_mute(channel, \
+                self.banks[self.active_bank][channel].enables[bus])
 
     def change_fader(self, fader, delta):
         """Change the level of a fader."""
         if self.banks[self.active_bank][fader] is not None:
-            self.banks[self.active_bank][fader].fader = min(max(0.0, self.banks[self.active_bank][fader].fader + (delta / 200)), 1.0)
+            self.banks[self.active_bank][fader].fader = \
+                min(max(0.0, self.banks[self.active_bank][fader].fader + (delta / 200)), 1.0)
             self.xair_client.send(
                 address=self.banks[self.active_bank][fader].osc_base_addr + '/fader',
                 param=self.banks[self.active_bank][fader].fader)
@@ -146,11 +148,14 @@ class MixerState:
         """Change the level of a bus send."""
         if ((self.banks[self.active_bank][channel] is not None)
                 and self.banks[self.active_bank][channel].sends is not None):
-            self.banks[self.active_bank][channel].sends[bus] = min(max(0.0, self.banks[self.active_bank][channel].sends[bus] + (delta / 200)), 1.0)
+            self.banks[self.active_bank][channel].sends[bus] = \
+                min(max(0.0, self.banks[self.active_bank][channel].sends[bus] + (delta / 200)), 1.0)
             self.xair_client.send(
-                address=self.banks[self.active_bank][channel].osc_base_addr + '/{:0>2d}/level'.format(bus + 1),
+                address=self.banks[self.active_bank][channel].osc_base_addr + \
+                    '/{:0>2d}/level'.format(bus + 1),
                 param=self.banks[self.active_bank][channel].sends[bus])
-            self.midi_controller.set_channel_fader(channel, self.banks[self.active_bank][channel].sends[bus])
+            self.midi_controller.set_channel_fader(channel, \
+                self.banks[self.active_bank][channel].sends[bus])
 
     def set_bus_send(self, bus, channel, value):
         """Set the level of a bus send."""
@@ -158,14 +163,17 @@ class MixerState:
                 and self.banks[self.active_bank][channel].sends is not None):
             self.banks[self.active_bank][channel].sends[bus] = value
             self.xair_client.send(
-                address=self.banks[self.active_bank][channel].osc_base_addr + '/{:0>2d}/level'.format(bus + 1),
+                address=self.banks[self.active_bank][channel].osc_base_addr + \
+                    '/{:0>2d}/level'.format(bus + 1),
                 param=self.banks[self.active_bank][channel].sends[bus])
-            self.midi_controller.set_channel_fader(channel, self.banks[self.active_bank][channel].sends[bus])
+            self.midi_controller.set_channel_fader(channel, \
+                self.banks[self.active_bank][channel].sends[bus])
 
     def change_headamp(self, fader, delta): # aka mic pre
         """Change the level of a mic pre aka headamp."""
         if self.banks[self.active_bank][fader] is not None:
-            self.banks[self.active_bank][fader].fader = min(max(0.0, self.banks[self.active_bank][fader].fader + (delta / 200)), 1.0)
+            self.banks[self.active_bank][fader].fader = \
+                min(max(0.0, self.banks[self.active_bank][fader].fader + (delta / 200)), 1.0)
             self.xair_client.send(
                 address=self.banks[self.active_bank][fader].osc_base_addr + '/gain',
                 param=self.banks[self.active_bank][fader].fader)
@@ -185,7 +193,7 @@ class MixerState:
                     elif addr.endswith('/on'):      # channel enable
                         if self.debug:
                             print('%s unMute %d' % (addr, value))
-                        self.banks[i][j].on = value
+                        self.banks[i][j].ch_on = value
                         if i == self.active_bank and self.active_bus in [8, 9]:
                             self.midi_controller.set_channel_mute(j, value)
                     elif self.banks[i][j].sends is not None and addr.endswith('/level'):
@@ -221,5 +229,6 @@ class MixerState:
                         time.sleep(0.002)
                         if self.banks[i][j].sends is not None:
                             for k in range(len(self.banks[i][j].sends)):
-                                self.xair_client.send(address=self.banks[i][j].osc_base_addr + '/{:0>2d}/level'.format(k + 1))
+                                self.xair_client.send(address=self.banks[i][j].osc_base_addr + \
+                                    '/{:0>2d}/level'.format(k + 1))
                                 time.sleep(0.002)
