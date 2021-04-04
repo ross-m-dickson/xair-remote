@@ -3,7 +3,8 @@ This module holds the state of the touch screen and buttons
 """
 import os
 import threading
-#import subprocess
+import datetime
+import subprocess
 
 import pygame
 from gpiozero import Button
@@ -15,23 +16,30 @@ class GPIOButton:
     page = 0
     pos = 0
     screen = None
+    rec_proc = None
+    debug = False
 
     def __init__(self, number, pos, ctl):
-        print("Start button Init")
+        self.debug = ctl.debug
+        if self.debug:
+            print("Start button Init")
         self.button_gpio = Button(number)
         self.pos = pos
         self.event_obj = pygame.event.Event(pygame.USEREVENT + 1 + pos,
                                             message="Button %d" % pos)
-        print("after pygame event id")
+        if self.debug:
+            print("after pygame event id")
         self.button_gpio.when_pressed = self.button_callback
         self.screen = ctl
         self.disable = [1, 1, 1]
         self.image = []
-        print("finish button Init")
+        if self.debug:
+            print("finish button Init")
 
     def button_callback(self):
         """Callback for when button event triggers."""
-        print("button_callback %d %d %d" % (self.pos, self.page, self.disable[self.page]))
+        if self.debug:
+            print("button_callback %d %d %d" % (self.pos, self.page, self.disable[self.page]))
         if self.disable[self.page] == 0:
             self.disable[self.page] = 1
             self.screen.button_function(self.pos, self.page, False)
@@ -88,19 +96,22 @@ class Screen:
            "any", "", "", "", "pga", "58", "akg", "akg")
     mics = []
     button_nm = ("Remote", "Record", "Screen Off", "Setup",
-                 "WiFi", "Auto Level", "Power Off", "Return",
+                 "WiFi", "Auto Level", "Quit", "Return",
                  "Confirm", "Confirm", "Return", "Return")
 
     def __init__(self, address, monitor, debug):
         # initialize the pygame infrastructure
-        print("start screen init")
+        if debug:
+            print("start screen init")
         os.environ["SDL_FBDEV"] = "/dev/fb1"
         pygame.init()
 
         self.address = address
         self.monitor = monitor
         self.debug = debug
-#        self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor, self.debug)
+        self.my_env = os.environ.copy()
+        self.my_env['AUDIODEV'] = 'hw:X18XR18,0'
+        self.record_command = ['rec', '-q', '--buffer', '1048576', '-c', '18', '-b', '24']
 
         if self.debug:
             print("start pygame")
@@ -160,7 +171,7 @@ class Screen:
                     # end XAir Remote threads
                     if self.xair_remote is not None:
                         if (self.xair_remote.xair is not None and
-                                xair_remote.xair.server is not None):
+                                self.xair_remote.xair.server is not None):
                             self.xair_remote.xair.server.shutdown()
                         if self.xair_remote.state is not None:
                             self.xair_remote.state.quit_called = True
@@ -169,27 +180,30 @@ class Screen:
             elif page == 1:
                 print("start wifi")
             else: # page == 2:
-                print("power down")
                 exit()
         elif pos == 1:
             if page == 0:
-                print("start record")
+                if start:
+                    if self.debug:
+                        print("start record")
+                    self.rec_proc = subprocess.Popen(self.record_command + \
+                        ['/media/pi/USBTrav/%s.wav' % datetime.datetime.now().\
+                            strftime("%Y-%m-%d-%H%M%S")], env=self.my_env)
+                else:
+                    self.rec_proc.terminate()
             elif page == 1:
                 print("start auto level")
             else: # page == 2:
-                print("power down")
                 exit()
         elif pos == 2:
             if page == 0:
                 print("screen off")
             elif page == 1:
-                print("Poweroff menu")
                 # power off menu, change to page 2
                 self.gpio_button[pos].set_disable(1) # disable button
                 for i in range(4):
                     self.gpio_button[i].page = 2 # switch screen
             else: # page == 2:
-                print("seup menu return")
                 # return from power off menu, change to page 1
                 self.gpio_button[pos].set_disable(1) # disable button
                 for i in range(4):
@@ -197,26 +211,24 @@ class Screen:
         else:
             if page == 0:
                 # setup menu, disable page
-                print("open setup menu")
                 self.gpio_button[pos].set_disable(1) # disable button
                 for i in range(4):
                     self.gpio_button[i].page = 1 # switch screen
             elif page == 1:
                 # return from setup menu, change to page 0
-                print("return from setup menu")
                 self.gpio_button[pos].set_disable(1) # disable button
                 for i in range(4):
                     self.gpio_button[i].page = 0 # switch screen
             else: # page == 2:
                 # return from power off menu, change to page 1
-                print("return from power off menu")
                 self.gpio_button[pos].set_disable(1) # disable button
                 for i in range(4):
                     self.gpio_button[i].page = 1 # switch screen
 
     def screen_loop(self):
         """Update the screen after an event."""
-        print("start screen loop")
+        if self.debug:
+            print("start screen loop")
         # set the background
         self.screen.fill(self.black)
         pygame.draw.rect(self.screen, self.blue, (0, 0, 320, 240), 3) # outer border
@@ -242,5 +254,6 @@ class Screen:
             self.screen.blit(self.gpio_button[j].get_img(), (self.button_left + 4, 30 + (j*60)))
 
         pygame.display.flip()
-        print("finish screen loop")
+        if self.debug:
+            print("finish screen loop")
 #        sleep(5)
