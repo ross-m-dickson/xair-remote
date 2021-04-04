@@ -25,9 +25,13 @@ class XAirRemote:
         self.state = MixerState()
         self.midi = MidiController(self.state)
         self.state.midi_controller = self.midi
+        if self.state.quit_called:
+            return
         self.xair = XAirClient(xair_address, self.state)
         self.state.xair_client = self.xair
         self.xair.validate_connection()
+        if self.state.quit_called:
+            return
 
         self.state.debug = debug
         self.midi.debug = debug
