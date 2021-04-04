@@ -28,6 +28,7 @@ class MixerState:
     sent to the midi controller.
     """
     debug = False
+    quit_called = False
 
     fx_slots = [0, 0, 0, 0]
 
