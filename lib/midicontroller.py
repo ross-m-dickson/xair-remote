@@ -1,7 +1,6 @@
 "See class docstring"
 import threading
 import time
-import os
 from mido import Message, open_input, open_output, get_input_names, get_output_names
 
 class MidiController:
@@ -48,7 +47,9 @@ class MidiController:
                     self.inport = open_input(name)
                 except IOError:
                     print('Error: Can not open MIDI input port ' + name)
-                    exit()
+                    self.state.quit_called = True
+                    #exit()
+                    return
                 break
 
         for name in get_output_names():
@@ -58,12 +59,16 @@ class MidiController:
                     self.outport = open_output(name)
                 except IOError:
                     print('Error: Can not open MIDI input port ' + name)
-                    exit()
+                    self.state.quit_called = True
+                    #exit()
+                    return
                 break
 
         if self.inport is None or self.outport is None:
             print('X-Touch Mini not found. Make sure device is connected!')
-            exit()
+            self.state.quit_called = True
+            #exit()
+            return
 
         for i in range(0, 18):
             self.set_button(i, self.LED_OFF)    # clear all buttons
@@ -78,7 +83,8 @@ class MidiController:
             while True:
                 if self.inport.name not in get_input_names():
                     print("X-Touch disconnected - Exiting")
-                    os._exit(1)
+                    self.state.quit_called = True
+                    return
                 time.sleep(1)
         except KeyboardInterrupt:
             exit()
