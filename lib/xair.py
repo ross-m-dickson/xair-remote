@@ -79,6 +79,8 @@ class XAirClient:
             while True:
                 self.server.send_message("/xremotenfb", None)
                 time.sleep(self._REFRESH_TIMEOUT)
+                if self.state.quite_called:
+                    return
         except KeyboardInterrupt:
             exit()
             
