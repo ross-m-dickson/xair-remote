@@ -118,6 +118,8 @@ class MidiController:
                     #self.state.set_lr_fader(value) # unused move master fader to second layer
                 elif msg.type != 'note_off' and msg.type != 'note_on':
                     print('Received unknown {}'.format(msg))
+                if self.state.quit_called:
+                    return
         except KeyboardInterrupt:
             self.inport.close()
             self.outport.close()
