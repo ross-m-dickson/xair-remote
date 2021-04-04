@@ -24,6 +24,7 @@ class GPIOButton:
         self.button_gpio.when_pressed = self.button_callback
         self.screen = ctl
         self.disable = [1, 1, 1]
+        self.image = []
 
     def button_callback(self):
         """Callback for when button event triggers."""
@@ -43,6 +44,9 @@ class GPIOButton:
     def get_disable(self):
         "return the curren disable value"
         return self.disable[self.page]
+
+    def get_img(self):
+        return self.image[self.page]
 
 class Screen:
     """
@@ -84,7 +88,6 @@ class Screen:
     button_nm = ("Remote", "Record", "Screen Off", "Setup",
                  "WiFi", "Auto Level", "Power Off", "Return",
                  "Confirm", "Confirm", "Return", "Return")
-    button_img = []
 
     def __init__(self, address, monitor, debug):
         # initialize the pygame infrastructure
@@ -114,8 +117,10 @@ class Screen:
                                                                   1, (self.red)), 315))
             self.numbers.append(font.render("%02d" % (j+1), 1, (self.red)))
             self.mics.append(smfont.render(self.mic[j], 1, (self.red)))
-        for j in range(12):
-            self.button_img.append(font.render(self.button_nm[j], 1, (self.blue)))
+        for i in range(4):
+            for j in range(3):
+                self.gpio_button[i].image.append(
+                    font.render(self.button_nm[i+(j*4)], 1, (self.blue)))
 
         self.title_w, self.title_h = self.title.get_size()
         self.subtitle_w, self.subtitle_h = self.sub_title.get_size()
@@ -203,7 +208,7 @@ class Screen:
                 pygame.draw.rect(self.screen, self.yellow,
                                  (self.button_left, 5+(j*60), self.button_width, 50),
                                  self.gpio_button[j].get_disable())
-                self.screen.blit(self.button_img[j], (self.button_left + 4, 30 + (j*60)))
+                self.screen.blit(self.gpio_button[j].get_img(), (self.button_left + 4, 30 + (j*60)))
 
             pygame.display.flip()
 
