@@ -3,9 +3,9 @@ This module holds the state of the touch screen and buttons
 """
 import os
 import threading
-import pygame
 #import subprocess
 
+import pygame
 from gpiozero import Button
 
 import xair_remote
@@ -17,25 +17,28 @@ class GPIOButton:
     screen = None
 
     def __init__(self, number, pos, ctl):
+        print("Start button Init")
         self.button_gpio = Button(number)
         self.pos = pos
         self.event_obj = pygame.event.Event(pygame.USEREVENT + 1 + pos,
                                             message="Button %d" % pos)
+        print("after pygame event id")
         self.button_gpio.when_pressed = self.button_callback
         self.screen = ctl
         self.disable = [1, 1, 1]
         self.image = []
+        print("finish button Init")
 
     def button_callback(self):
         """Callback for when button event triggers."""
         print("button_callback %d %d %d" % (self.pos, self.page, self.disable[self.page]))
         if self.disable[self.page] == 0:
             self.disable[self.page] = 1
-            self.screen.button_function(self.pos, self.page, True)
+            self.screen.button_function(self.pos, self.page, False)
         else:
             self.disable[self.page] = 0
-            self.screen.button_function(self.pos, self.page, False)
-        #self.screen.screen_loop()
+            self.screen.button_function(self.pos, self.page, True)
+        self.screen.screen_loop()
 
     def set_disable(self, value):
         "set the curren disable value"
@@ -46,6 +49,7 @@ class GPIOButton:
         return self.disable[self.page]
 
     def get_img(self):
+        "return the image representing the current page"
         return self.image[self.page]
 
 class Screen:
@@ -57,8 +61,6 @@ class Screen:
     # pointers to other modules
     xair_remote = None
     xair_thread = None
-    osc_thread = None
-    midi_thread = None
 
     # define names for numbers
     size = width, height = 320, 240
@@ -91,24 +93,38 @@ class Screen:
 
     def __init__(self, address, monitor, debug):
         # initialize the pygame infrastructure
+        print("start screen init")
         os.environ["SDL_FBDEV"] = "/dev/fb1"
         pygame.init()
-        pygame.mouse.set_visible(False)
 
-        # initialize XAir Remote
-        self.xair_remote = xair_remote.XAirRemote(address, monitor, debug)
+        self.address = address
+        self.monitor = monitor
+        self.debug = debug
+#        self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor, self.debug)
 
+        if self.debug:
+            print("start pygame")
         # define pygame values
-        self.screen = pygame.display.set_mode((320, 240))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+        self.screen = pygame.display.set_mode([320, 240])
         # define font sizes
+        if self.debug:
+            print("start fonts")
         font = pygame.font.Font(None, 24)
         smfont = pygame.font.Font(None, 19)
         title_font = pygame.font.Font(None, 34)
+        pygame.mouse.set_visible(False)
 
+        if self.debug:
+            print("create buttons")
         # initialize GPIO buttons
         self.gpio_button = (GPIOButton(17, 0, self), GPIOButton(22, 1, self),
                             GPIOButton(23, 2, self), GPIOButton(27, 3, self))
 
+        if self.debug:
+            print("start surfaces")
         #convert strings to surfaces
         self.title = title_font.render("X Air Control", 1, (self.blue))
         self.sub_title = font.render("Channel Setup", 1, (self.blue))
@@ -125,19 +141,36 @@ class Screen:
         self.title_w, self.title_h = self.title.get_size()
         self.subtitle_w, self.subtitle_h = self.sub_title.get_size()
         self.num_w, self.num_h = self.numbers[7].get_size()
+        if self.debug:
+            print("finish screen init")
 
     def button_function(self, pos, page, start):
         "Start the function specified by the button and page"
         if pos == 0:
             if page == 0:
                 if start:
-                    xair_thread = threading.Thread(target=self.xair_remote.xair.refresh_connection)
-                    osc_thread = xair_remote.XAirClient.worker
-                    midi_thread = xair_remote.MidiController.worker
+                    # initialize XAir Remote
+                    self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor, self.debug)
+                    if self.xair_remote.state is None or self.xair_remote.state.quit_called:
+                        self.gpio_button[pos].disable[page] = 1
+                    else:
+                        self.xair_thread = threading.Thread(
+                            target=self.xair_remote.xair.refresh_connection)
+                else:
+                    # end XAir Remote threads
+                    if self.xair_remote is not None:
+                        if (self.xair_remote.xair is not None and
+                                xair_remote.xair.server is not None):
+                            self.xair_remote.xair.server.shutdown()
+                        if self.xair_remote.state is not None:
+                            self.xair_remote.state.quit_called = True
+                    if self.debug:
+                        print("Shutdown complete")
             elif page == 1:
                 print("start wifi")
             else: # page == 2:
                 print("power down")
+                exit()
         elif pos == 1:
             if page == 0:
                 print("start record")
@@ -145,6 +178,7 @@ class Screen:
                 print("start auto level")
             else: # page == 2:
                 print("power down")
+                exit()
         elif pos == 2:
             if page == 0:
                 print("screen off")
@@ -182,37 +216,31 @@ class Screen:
 
     def screen_loop(self):
         """Update the screen after an event."""
-        while 1:
-#            for event in pygame.event.get():
-#                if event.type == pygame.QUIT: sys.exit()
+        print("start screen loop")
+        # set the background
+        self.screen.fill(self.black)
+        pygame.draw.rect(self.screen, self.blue, (0, 0, 320, 240), 3) # outer border
+        # draw titles
+        self.screen.blit(self.title, (self.title_center-(self.title_w/2), 10))
+        self.screen.blit(self.sub_title, (self.title_center-(self.subtitle_w/2), 40))
+        # draw channel names
+        pygame.draw.rect(self.screen, self.red, (self.box_left, 68, self.box_width, 170), 1)
+        for j in range(8):
+            self.screen.blit(self.numbers[j], (self.margin   + (j * self.box_width/8), 70))
+            self.screen.blit(self.words[j], (self.box_left + (j * self.box_width/8),
+                                             70+self.num_h))
+            self.screen.blit(self.mics[j], (self.box_left + (j * self.box_width/8), 135))
+            self.screen.blit(self.numbers[j+8], (self.margin   + (j * self.box_width/8), 155))
+            self.screen.blit(self.words[j+8], (self.box_left + (j * self.box_width/8),
+                                               155+self.num_h))
+            self.screen.blit(self.mics[j+8], (self.box_left + (j * self.box_width/8), 220))
+        # draw the buttons
+        for j in range(4):
+            pygame.draw.rect(self.screen, self.yellow,
+                             (self.button_left, 5+(j*60), self.button_width, 50),
+                             self.gpio_button[j].get_disable())
+            self.screen.blit(self.gpio_button[j].get_img(), (self.button_left + 4, 30 + (j*60)))
 
-            # set the background
-            self.screen.fill(self.black)
-            pygame.draw.rect(self.screen, self.blue, (0, 0, 320, 240), 3) # outer border
-            # draw titles
-            self.screen.blit(self.title, (self.title_center-(self.title_w/2), 10))
-            self.screen.blit(self.sub_title, (self.title_center-(self.subtitle_w/2), 40))
-            # draw channel names
-            pygame.draw.rect(self.screen, self.red, (self.box_left, 68, self.box_width, 170), 1)
-            for j in range(8):
-                self.screen.blit(self.numbers[j], (self.margin   + (j * self.box_width/8), 70))
-                self.screen.blit(self.words[j], (self.box_left + (j * self.box_width/8),
-                                                 70+self.num_h))
-                self.screen.blit(self.mics[j], (self.box_left + (j * self.box_width/8), 135))
-                self.screen.blit(self.numbers[j+8], (self.margin   + (j * self.box_width/8), 155))
-                self.screen.blit(self.words[j+8], (self.box_left + (j * self.box_width/8),
-                                                   155+self.num_h))
-                self.screen.blit(self.mics[j+8], (self.box_left + (j * self.box_width/8), 220))
-            # draw the buttons
-            for j in range(4):
-                pygame.draw.rect(self.screen, self.yellow,
-                                 (self.button_left, 5+(j*60), self.button_width, 50),
-                                 self.gpio_button[j].get_disable())
-                self.screen.blit(self.gpio_button[j].get_img(), (self.button_left + 4, 30 + (j*60)))
-
-            pygame.display.flip()
-
-#starts the xair_remote
-#the xair_recorder
-#the WiFi as a server
-#The fourth/bottom button opens a sub menu
+        pygame.display.flip()
+        print("finish screen loop")
+#        sleep(5)
