@@ -1,16 +1,13 @@
 "See help for main"
 #!/usr/bin/env python3
 import argparse
-import threading
 
 from time import sleep
 from lib.screen import Screen
 
-import xair_remote
-
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="""
+    PARSER = argparse.ArgumentParser(description="""
     Configure a Raspberry PI to record 18 track audio from and control X-Air
     mixers with an X-Touch midi controller. This script assumes that the PI has
     a PiFIT or similar hat that provides a framebuffer and has buttons at GPIO
@@ -43,19 +40,15 @@ if __name__ == '__main__':
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     # the fader is not used as I don't have a good global use and a bank
     # specific use doesn't work well with a non moving fader
-    parser.add_argument('xair_address', help='ip address of your X-Air mixer (optional)', nargs='?')
-    parser.add_argument('-m', '--monitor',
+    PARSER.add_argument('xair_address', help='ip address of your X-Air mixer (optional)', nargs='?')
+    PARSER.add_argument('-m', '--monitor',
                         help='monitor X-Touch connection and exit when disconnected',
                         action="store_true")
-    parser.add_argument('-d', '--debug', help='enable debug output', action="store_true")
-    args = parser.parse_args()
+    PARSER.add_argument('-d', '--debug', help='enable debug output', action="store_true")
+    ARGS = PARSER.parse_args()
 
-    remote = xair_remote.XAirRemote(args.xair_address, args.monitor, args.debug)
-    xair_thread = threading.Thread(target=remote.xair.refresh_connection)
-    osc_thread = xair_remote.XAirClient.worker
-    midi_thread = xair_remote.MidiController.worker
-    screen_obj = Screen()
-    screen_obj.screen_loop()
+    SCREEN_OBJ = Screen(ARGS.xair_address, ARGS.monitor, ARGS.debug)
+    SCREEN_OBJ.screen_loop()
 
     while True:
         sleep(5)
