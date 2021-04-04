@@ -119,7 +119,7 @@ class Screen:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
-        self.screen = pygame.display.set_mode([320, 240])
+        self.screen = pygame.display.set_mode([320, 240], pygame.FULLSCREEN)
         # define font sizes
         if self.debug:
             print("start fonts")
