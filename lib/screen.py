@@ -69,6 +69,7 @@ class Screen:
     # pointers to other modules
     xair_remote = None
     xair_thread = None
+    read_proc = None
 
     # define names for numbers
     size = width, height = 320, 240
