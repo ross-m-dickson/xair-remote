@@ -1,0 +1,165 @@
+installed PiTFT as resistiv with x and 90 degree orientation
+
+sudo apt-get install -y git python3-pip
+sudo apt-get install fbi
+sudo apt-get install sox
+sudo apt-get install evtest tslib libts-bin
+sudo apt-get install vim
+sudo apt-get install hostapd
+sudo apt-get install dnsmasq
+
+edit /ect/hostname and /etc/hosts to update to something easier to type
+
+sudo pip3 install --upgrade adafruit-python-shell click==7.0
+git clone https://github.com/adafruit/Raspberry-Pi-Installer-Scripts.git
+cd Raspberry-Pi-Installer-Scripts
+sudo python3 adafruit-pitft.py
+
+based on the second answer to https://raspberrypi.stackexchange.com/questions/89803/access-point-as-wifi-router-repeater-optional-with-bridge/89804#89804
+I am configuring using dhcpcd the goal is:
+wifi client configured via dhcpcd
+wifi access point with static IP and dhcp server
+
+wired ethernet switchable between:
+wired network mode where eth0 is configured via dhcpcd
+
+stand alone network mode where eth0 is bridged to wifi access point and thus
+enables clients to be configured via the DHCP server, also routing between wifi
+client and bridged network
+
+all following in `sudo -Es` mode
+
+# configure hostapd for the access point
+
+test -f /etc/hostapd/hostapd.conf || cat > /etc/hostapd/hostapd.conf <<\EOF
+ctrl_interface=/var/run/hostapd
+driver=nl80211
+country_code=US # Use your country code
+bridge=br0
+ssid=XAir-XR18
+hw_mode=g
+channel=7
+auth_algs=1
+wpa=2
+wpa_passphrase=XAir
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+EOF
+
+chmod 600 /etc/hostapd/hostapd.conf
+# edit /etc/hostapd/hostapd.conf and verify it
+
+# test creation and deletion of the virtual device
+/sbin/iw dev wlan0 interface add uap0 type __ap
+/sbin/iw dev uap0 del
+
+# should be no output
+
+# setup the virtual interface 
+SYSTEMD_EDITOR=tee systemctl edit --force --full uap@.service <<\EOF
+[Unit]
+Description=IEEE 802.11 %p%i AP on wlan%i with hostapd
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/run/hostapd.pid
+Restart=on-failure
+RestartSec=2
+Environment=DAEMON_CONF=/etc/hostapd/hostapd.conf
+EnvironmentFile=-/etc/default/hostapd
+ExecStartPre=/sbin/iw dev wlan%i interface add %p%i type __ap
+ExecStart=/usr/sbin/hostapd -i %p%i -P /run/hostapd.pid -B $DAEMON_OPTS ${DAEMON_CONF}
+ExecStopPost=-/sbin/iw dev %p0 del
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl stop hostapd # if the default hostapd service was active before
+systemctl disable hostapd # if the default hostapd service was enabled before
+systemctl enable uap@0.service
+rfkill unblock wlan
+
+# add to the end of /etc/dhcpcd
+
+interface wlan0 # these two lines are not strictly needed, as wlan0 uses the default configuration
+    dhcp
+
+interface uap0 # this defines static addressing to uap0 and disables wpa_supplicant for this interface
+    static ip_address=192.168.50.1/24
+    ipv4only
+    nohook wpa_supplicant
+
+interface br0
+    static ip_address=192.168.50.1/24
+
+# configure dnsmasq as per raspberry example:
+
+cat >> /etc/dnsmasq.conf <<\EOF
+
+# disables dnsmasq reading any other files like /etc/resolv.conf for nameservers
+no-resolv
+
+interface=uap0
+no-dhcp-interface=lo,wlan0
+domain-needed
+bogus-priv
+server=8.8.8.8
+dhcp-range=192.168.50.50,192.168.50.199,12h
+dhcp-option=3,192.168.50.1
+EOF
+
+# edit /etc/dnsmasq.conf and verify it
+cat >> /etc/dnsmasq.conf <<\EOF
+
+# disables dnsmasq reading any other files like /etc/resolv.conf for nameservers
+no-resolv
+
+interface=uap0
+no-dhcp-interface=lo,wlan0,eth0
+domain-needed
+bogus-priv
+server=8.8.8.8
+dhcp-range=192.168.50.50,192.168.50.199,12h
+dhcp-option=3,192.168.50.1
+EOF
+
+# edit /etc/dnsmasq.conf and verify it
+
+# disable so that the AP doesn't auto start
+
+systemctl disable uap@0.service
+
+# define the bridge
+
+test -f /etc/systemd/network/bridge-br0.netdev || cat > /etc/systemd/network/bridge-br0.netdev <<\EOF
+[NetDev]
+Name=br0
+Kind=bridge
+EOF
+
+test -f /etc/systemd/network/br0-member-eth0.network || cat > /etc/systemd/network/br0-member-eth0.network <<\EOF
+[Match]
+Name=eth0
+
+[Network]
+Bridge=br0
+EOF
+
+#reboot
+
+# to stop AP
+sudo systemctl stop uap@0
+
+# to start AP and services:
+sudo systemctl stop dhcpcd && sudo systemctl start systemd-networkd && sudo systemctl start uap@0 && sudo systemctl start dhcpcd
+
+
+unused bits:
+
+# enable routing and IP Masquerading:
+sudo DEBIAN_FRONTEND=noninteractive apt install -y netfilter-persistent iptables-persistent
+
+
