@@ -179,7 +179,12 @@ class Screen:
                     if self.debug:
                         print("Shutdown complete")
             elif page == 1:
-                print("start wifi")
+                if start:
+                    print("start wifi")
+                    os.system("sudo systemctl stop dhcpcd && sudo systemctl start systemd-networkd ",
+                    "&& sudo systemctl start uap@0 && sudo systemctl start dhcpcd")
+                else:
+                    os.system("sudo systemctl stop uap@0")
             else: # page == 2:
                 exit()
         elif pos == 1:
