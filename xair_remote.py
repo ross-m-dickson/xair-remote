@@ -18,7 +18,8 @@ class XAirRemote:
             if address is None:
                 print('Error: Could not find any mixers in network.',
                       'Please specify ip address manually.')
-                return
+                #return
+                xair_address = "192.168.50.106"
             else:
                 xair_address = address
 
