@@ -193,7 +193,7 @@ class Screen:
                     if self.debug:
                         print("start record")
                     self.rec_proc = subprocess.Popen(self.record_command + \
-                        ['/media/pi/USBTrav/%s.wav' % datetime.datetime.now().\
+                        ['/media/pi/USBTrav/%s.caf' % datetime.datetime.now().\
                             strftime("%Y-%m-%d-%H%M%S")], env=self.my_env)
                 else:
                     self.rec_proc.terminate()
