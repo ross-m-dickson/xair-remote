@@ -3,6 +3,7 @@ This module holds the mixer state of the X-Air device
 """
 
 import time
+import struct
 
 class Channel:
     """
@@ -233,3 +234,21 @@ class MixerState:
                                 self.xair_client.send(address=self.banks[i][j].osc_base_addr + \
                                     '/{:0>2d}/level'.format(k + 1))
                                 time.sleep(0.002)
+# channel levels, not entirely clear
+#        self.xair_client.send(address="/meters", param=["/meters/0", 7])
+#        time.sleep(0.002)
+#        self.xair_client.send(address="/meters", param=["/meters/2"]) # input levels
+#        time.sleep(0.002)
+        #elf.xair_client.send(address="/meters/1")
+        #time.sleep(0.002)
+        #self.xair_client.send(address="/meters/13")
+        #time.sleep(0.002)
+
+    def received_meters(self, addr, data):
+        "receive an OSC Meters packet"
+        data_size = struct.unpack("<L", data[0][0:4])[0]
+        values = []
+        for i in range(data_size):
+            values.append((struct.unpack("<h", data[0][(4+(i*2)):4+((i+1)*2)])[0])/256)
+        print('Meters("%s", %s) size %s length %s' % (addr, data[0], len(data[0]), data_size))
+        print(values)
