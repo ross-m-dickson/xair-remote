@@ -89,12 +89,12 @@ class Screen:
     button_width = 320 - button_left - box_left/2
 
     #define strings
-    names = ("Bass", "Guitar", "Keys", "Sax", "Ross", "Raluca", "Butch", "Ors",
-             "Itai", "Guest", "Guest", "Guest", "Kick", "Snare", "Toms", "Hat")
+    names = ("Bass", "Guitar", "Keys", "Sax", "Butch", "Ors", "Raluca", "Ross",
+             "Kick", "Snare", "Toms", "Hat", "Guest", "Guest", "Guest", "Itai")
     words = []
     numbers = []
-    mic = ("1/4", "1/4", "1/4", "pga", "cm", "58", "58", "ors",
-           "any", "", "", "", "pga", "58", "akg", "akg")
+    mic = ("1/4", "1/4", "1/4", "pga", "58", "ors", "58", "cm",
+           "pga", "58", "akg", "akg", "", "", "", "any")
     mics = []
     button_nm = ("Remote", "Record", "Screen Off", "Setup",
                  "WiFi", "Auto Level", "Quit", "Return",
@@ -112,7 +112,7 @@ class Screen:
         self.debug = debug
         self.my_env = os.environ.copy()
         self.my_env['AUDIODEV'] = 'hw:X18XR18,0'
-        self.record_command = ['rec', '-q', '--buffer', '1048576', '-c', '18', '-b', '24']
+        self.record_command = ['rec', '-q', '--buffer', '262144', '-c', '18', '-b', '24']
 
         if self.debug:
             print("start pygame")
@@ -162,7 +162,8 @@ class Screen:
             if page == 0:
                 if start:
                     # initialize XAir Remote
-                    self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor, self.debug)
+                    self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor,
+                                                              self.debug)
                     if self.xair_remote.state is None or self.xair_remote.state.quit_called:
                         self.gpio_button[pos].disable[page] = 1
                     else:
@@ -181,8 +182,8 @@ class Screen:
             elif page == 1:
                 if start:
                     print("start wifi")
-                    os.system("sudo systemctl stop dhcpcd && sudo systemctl start systemd-networkd ",
-                    "&& sudo systemctl start uap@0 && sudo systemctl start dhcpcd")
+                    os.system("sudo systemctl stop dhcpcd && sudo systemctl start systemd-networkd",
+                              "&& sudo systemctl start uap@0 && sudo systemctl start dhcpcd")
                 else:
                     os.system("sudo systemctl stop uap@0")
             else: # page == 2:
@@ -193,7 +194,7 @@ class Screen:
                     if self.debug:
                         print("start record")
                     self.rec_proc = subprocess.Popen(self.record_command + \
-                        ['/media/pi/USBTrav/%s.caf' % datetime.datetime.now().\
+                        ['/media/pi/Lexar/%s.caf' % datetime.datetime.now().\
                             strftime("%Y-%m-%d-%H%M%S")], env=self.my_env)
                 else:
                     self.rec_proc.terminate()
