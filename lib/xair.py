@@ -53,7 +53,8 @@ class XAirClient:
             print('Successfully connected to %s with firmware %s at %s.' % (self.info_response[2],
                     self.info_response[3], self.info_response[0]))
         else:
-            print('Error: Failed to setup OSC connection to mixer. Please check for correct ip address.')
+            print('Error: Failed to setup OSC connection to mixer.',
+                  'Please check for correct ip address.')
             self.state.quit_called = True
             if self.server != None:
                 self.server.shutdown()
@@ -67,11 +68,16 @@ class XAirClient:
             exit()
 
     def msg_handler(self, addr, *data):
-        #print 'OSCReceived("%s", %s, %s)' % (addr, tags, data)
-        if addr.endswith('/fader') or addr.endswith('/on') or addr.endswith('/level') or addr.startswith('/config/mute') or addr.endswith('/gain'):
+        if addr.endswith('/fader') or addr.endswith('/on') or addr.endswith('/level') or \
+                addr.startswith('/config/mute') or addr.endswith('/gain'):
             self.state.received_osc(addr, data[0])
         elif addr == '/xinfo':
             self.info_response = data[:]
+        elif addr.startswith('/meters'):
+            self.state.received_meters(addr, data)
+        else:         #if self.state.debug and addr.start:
+            print('OSCReceived("%s", %s)' % (addr, data))
+
 
     def refresh_connection(self):
         # Tells mixer to send changes in state that have not been received from this OSC Client
