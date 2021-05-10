@@ -4,6 +4,7 @@ This module holds the mixer state of the X-Air device
 
 import time
 import struct
+from collections import deque
 
 class Channel:
     """
@@ -21,6 +22,22 @@ class Channel:
         self.ch_on = 1
         self.osc_base_addr = addr
 
+class Meter:
+    """
+    Calculates the .2 second running average of the value of a channel meter
+    """
+    values = 4
+    def __init__(self):
+        self.levels = deque(maxlen = self.values)
+        for i in range(self.values):
+            self.levels.append(0)
+        self.mean = 0
+
+    def insert_level(self,value):
+        self.mean = self.mean - self.levels.popleft() + value
+        self.levels.append(value)
+        return self.mean
+
 class MixerState:
     """
     This stores the mixer state in the application. It also keeps
@@ -29,6 +46,7 @@ class MixerState:
     sent to the midi controller.
     """
     debug = False
+    clip = False
     quit_called = False
 
     fx_slots = [0, 0, 0, 0]
@@ -92,6 +110,10 @@ class MixerState:
 
     midi_controller = None
     xair_client = None
+
+    meters = []
+    for i in range(16):
+        meters.append(Meter())
 
     def toggle_channel_mute(self, channel):
         """Toggle the state of a channel mute button."""
@@ -234,21 +256,36 @@ class MixerState:
                                 self.xair_client.send(address=self.banks[i][j].osc_base_addr + \
                                     '/{:0>2d}/level'.format(k + 1))
                                 time.sleep(0.002)
+
+# how to set up a meter subscription
+# values send every 50ms for 10s
+# the actual call is located in xair.py in the refresch connecton method that runs every 5 s
+#self.xair_client.send(address="/meters", param=["/meters/1"]) # pre faid ch levels
+#time.sleep(0.002)
+# using meters 2, input levels, as these will match the headamps even if mapped to other channels
+#        self.xair_client.send(address="/meters", param=["/meters/2"])
+#        time.sleep(0.002)
 # channel levels, not entirely clear
 #        self.xair_client.send(address="/meters", param=["/meters/0", 7])
 #        time.sleep(0.002)
-#        self.xair_client.send(address="/meters", param=["/meters/2"]) # input levels
-#        time.sleep(0.002)
-        #elf.xair_client.send(address="/meters/1")
-        #time.sleep(0.002)
-        #self.xair_client.send(address="/meters/13")
-        #time.sleep(0.002)
+#self.xair_client.send(address="/meters/1")
+#time.sleep(0.002)
+#self.xair_client.send(address="/meters/13")
+#time.sleep(0.002)
 
     def received_meters(self, addr, data):
         "receive an OSC Meters packet"
         data_size = struct.unpack("<L", data[0][0:4])[0]
         values = []
+        short = []
+        med = []
         for i in range(data_size):
-            values.append((struct.unpack("<h", data[0][(4+(i*2)):4+((i+1)*2)])[0])/256)
-        print('Meters("%s", %s) size %s length %s' % (addr, data[0], len(data[0]), data_size))
-        print(values)
+            if i > 15:
+                break
+            value = struct.unpack("<h", data[0][(4+(i*2)):4+((i+1)*2)])[0]
+            values.append("%0.2f" % (self.meters[i].insert_level(value)/1024))
+            short.append(value)
+            med.append(value/256)
+        #print('Meters("%s", %s) size %s length %s' % (addr, data[0], len(data[0]), data_size))
+        print('Meters %s ch 8 %s %s %s' % (addr, values[7], short[7], med[7]))
+        #print(values)
