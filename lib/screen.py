@@ -194,7 +194,7 @@ class Screen:
                     if self.debug:
                         print("start record")
                     self.rec_proc = subprocess.Popen(self.record_command + \
-                        ['/media/pi/Lexar/%s.caf' % datetime.datetime.now().\
+                        ['/media/pi/ExternalSSD/%s.caf' % datetime.datetime.now().\
                             strftime("%Y-%m-%d-%H%M%S")], env=self.my_env)
                 else:
                     self.rec_proc.terminate()
