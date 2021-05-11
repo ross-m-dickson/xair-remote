@@ -80,9 +80,12 @@ class XAirClient:
 
 
     def refresh_connection(self):
-        # Tells mixer to send changes in state that have not been received from this OSC Client
-        #   /xremote        - all parameter changes are broadcast to all active clients (Max 4)
-        #   /xremotefnb     - No Feed Back. Parameter changes are only sent to the active clients which didn't initiate the change
+        """
+        Tells mixer to send changes in state that have not been received from this OSC Client
+          /xremote        - all parameter changes are broadcast to all active clients (Max 4)
+          /xremotefnb     - No Feed Back. Parameter changes are only sent to the active clients
+                                                                which didn't initiate the change
+        """
         if self.state.debug:
             print("Refresh Connection %s" % self.state.levels)
         try:
