@@ -91,7 +91,7 @@ class XAirClient:
         try:
             while True:
                 self.server.send_message("/xremotenfb", None)
-                if self.state.levels:
+                if self.state.levels or self.state.clip:
                     # using input levels, as these match the headamps when channels are remapped
                     time.sleep(0.002)
                     self.state.xair_client.send(address="/meters", param=["/meters/2"])
