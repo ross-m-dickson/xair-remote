@@ -203,12 +203,23 @@ class Screen:
                 else:
                     self.rec_proc.terminate()
             elif page == 1:
-                print("start auto level")
+                print("TBD")
             else: # page == 2:
                 exit()
         elif pos == 2:
             if page == 0:
-                print("screen off")
+                if start:
+                    if self.debug:
+                        print("start auto level")
+                    if self.xair_remote.state is None or self.xair_remote.state.quit_called:
+                        self.gpio_button[pos].disable[page] = 1
+                    else:
+                        self.xair_remote.state.clip = True
+                else:
+                    if self.xair_remote.state is not None:
+                        self.xair_remote.state.clip = False
+                    if self.debug:
+                        print("auto level disabled")
             elif page == 1:
                 # power off menu, change to page 2
                 self.gpio_button[pos].set_disable(1) # disable button
@@ -266,14 +277,14 @@ class Screen:
                         meter_color = self.green
                         if meter_level > -10:
                             meter_color = self.red
-                        pygame.draw.rect(self.screen, meter_color, (self.box_left + (j * meter_width),
-                                                                    self.box_top - meter_level + offset,
+                        pygame.draw.rect(self.screen, meter_color, (self.box_left + (j*meter_width),
+                                                                    self.box_top-meter_level+offset,
                                                                     meter_width, bar_height), 0)
                 # overlay the meter with the legend
                 self.screen.blit(self.numbers[k], (self.margin + (j * meter_width),
-                                                self.box_top + 2 + offset))
+                                                   self.box_top + 2 + offset))
                 self.screen.blit(self.words[k], (self.box_left + (j * meter_width),
-                                                self.box_top + 2 + self.num_h + offset))
+                                                 self.box_top + 2 + self.num_h + offset))
                 self.screen.blit(self.mics[k], (self.box_left + (j * meter_width),
                                                 self.box_top + 67 + offset))
         # draw the buttons
