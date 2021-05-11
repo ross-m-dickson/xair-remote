@@ -28,12 +28,12 @@ class Meter:
     """
     values = 4
     def __init__(self):
-        self.levels = deque(maxlen = self.values)
-        for i in range(self.values):
+        self.levels = deque(maxlen=self.values)
+        for _ in range(self.values):
             self.levels.append(0)
         self.mean = 0
 
-    def insert_level(self,value):
+    def insert_level(self, value):
         'push a vlue into the fixed FIFO and update the mean'
         self.mean = self.mean - self.levels.popleft() + value
         self.levels.append(value)
@@ -48,6 +48,7 @@ class MixerState:
     """
     debug = False
     clip = False
+    levels = False
     quit_called = False
 
     fx_slots = [0, 0, 0, 0]
@@ -285,12 +286,18 @@ class MixerState:
         for i in range(data_size):
             if i > 15:
                 break
+            # get the current meter as a 16bit signed int mapped to -128db to 128db
+            # 1/256 db resolution, aka .004 dB
             value = struct.unpack("<h", data[0][(4+(i*2)):4+((i+1)*2)])[0]
-            values.append("%0.2f" % (self.meters[i].insert_level(value)/1024))
-            short.append(value)
-            med.append(value/256)
-        #print('Meters("%s", %s) size %s length %s' % (addr, data[0], len(data[0]), data_size))
-        print('Meters %s ch 8 %s %s %s' % (addr, values[7], short[7], med[7]))
-        #print(values)
+            # push the value into the fixed length fifo and get the smoothed value
+            smooth = self.meters[i].insert_level(value)/1024
+            if self.debug:
+                values.append("%0.2f" % smooth)
+                short.append(value)
+                med.append(value/256)
+        if self.debug:
+            #print('Meters("%s", %s) size %s length %s' % (addr, data[0], len(data[0]), data_size))
+            print('Meters %s ch 8 %s %s %s' % (addr, values[7], short[7], med[7]))
+            #print(values)
         if self.screen_obj is not None:
             self.screen_obj.screen_loop()
