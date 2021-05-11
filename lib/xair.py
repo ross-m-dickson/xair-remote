@@ -84,11 +84,11 @@ class XAirClient:
         #   /xremote        - all parameter changes are broadcast to all active clients (Max 4)
         #   /xremotefnb     - No Feed Back. Parameter changes are only sent to the active clients which didn't initiate the change
         if self.state.debug:
-            print("Refresh Connection %s" % self.state.clip)
+            print("Refresh Connection %s" % self.state.levels)
         try:
             while True:
                 self.server.send_message("/xremotenfb", None)
-                if self.state.clip:
+                if self.state.levels:
                     # using input levels, as these match the headamps when channels are remapped
                     time.sleep(0.002)
                     self.state.xair_client.send(address="/meters", param=["/meters/2"])

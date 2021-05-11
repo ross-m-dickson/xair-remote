@@ -162,9 +162,9 @@ class Screen:
         if pos == 0:
             if page == 0:
                 if start:
-                    # initialize XAir Remote
+                    # initialize XAir Remote, enable meters but not autolevel
                     self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor,
-                                                              self.debug, True) # enable meters
+                                                              self.debug, True, False)
                     if self.xair_remote.state is None or self.xair_remote.state.quit_called:
                         self.gpio_button[pos].disable[page] = 1
                     else:

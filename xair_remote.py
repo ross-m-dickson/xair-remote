@@ -12,7 +12,7 @@ class XAirRemote:
     midi = None
     xair = None
 
-    def __init__(self, xair_address, a_monitor, debug, clip):
+    def __init__(self, xair_address, a_monitor, debug, levels, clip):
         if xair_address is None:
             address = find_mixer()
             if address is None:
@@ -37,6 +37,10 @@ class XAirRemote:
         self.state.debug = debug
         self.midi.debug = debug
         self.state.clip = clip
+        if clip: # clipping protection doesn't work without level info
+            levels = True
+        self.state.levels = levels
+
 
         if a_monitor:
             print('Monitoring X-Touch connection enabled')
@@ -73,10 +77,11 @@ if __name__ == '__main__':
                         help='monitor X-Touch connection and exit when disconnected',
                         action="store_true")
     PARSER.add_argument('-d', '--debug', help='enable debug output', action="store_true")
+    PARSER.add_argument('-l', '--levels', help='get levels from the mixer', action="store_true")
     PARSER.add_argument('-c', '--clip', help='enabling auto leveling to avoid clipping',
                         action="store_true")
     ARGS = PARSER.parse_args()
 
-    REMOTE = XAirRemote(ARGS.xair_address, ARGS.monitor, ARGS.debug, ARGS.clip)
+    REMOTE = XAirRemote(ARGS.xair_address, ARGS.monitor, ARGS.debug, ARGS.levels, ARGS.clip)
     # now start polling refresh /xremote command while running
     REMOTE.xair.refresh_connection()
