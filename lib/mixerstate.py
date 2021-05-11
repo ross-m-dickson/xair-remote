@@ -34,6 +34,7 @@ class Meter:
         self.mean = 0
 
     def insert_level(self,value):
+        'push a vlue into the fixed FIFO and update the mean'
         self.mean = self.mean - self.levels.popleft() + value
         self.levels.append(value)
         return self.mean
@@ -261,7 +262,7 @@ class MixerState:
 # how to set up a meter subscription
 # values send every 50ms for 10s
 # the actual call is located in xair.py in the refresch connecton method that runs every 5 s
-# 
+#
 # meters 1 provide data per channel and bus
 # self.xair_client.send(address="/meters", param=["/meters/1"]) # pre faid ch levels
 # time.sleep(0.002)

@@ -259,7 +259,7 @@ class Screen:
                     meter_color = self.green
                     if meter_level > -10:
                         meter_color = self.red
-                    pygame.draw.rect(self.screen, meter_color, (self.box_left + (j * meter_width), 
+                    pygame.draw.rect(self.screen, meter_color, (self.box_left + (j * meter_width),
                                                                 self.box_top - meter_level,
                                                                 meter_width, bar_height), 0)
             # overlay the meter with the legend

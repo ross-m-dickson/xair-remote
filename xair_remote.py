@@ -73,7 +73,8 @@ if __name__ == '__main__':
                         help='monitor X-Touch connection and exit when disconnected',
                         action="store_true")
     PARSER.add_argument('-d', '--debug', help='enable debug output', action="store_true")
-    PARSER.add_argument('-c', '--clip', help='enabling auto leveling to avoid clipping', action="store_true")
+    PARSER.add_argument('-c', '--clip', help='enabling auto leveling to avoid clipping',
+                        action="store_true")
     ARGS = PARSER.parse_args()
 
     REMOTE = XAirRemote(ARGS.xair_address, ARGS.monitor, ARGS.debug, ARGS.clip)
