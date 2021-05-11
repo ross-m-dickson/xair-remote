@@ -97,8 +97,8 @@ class Screen:
     mic = ("1/4", "1/4", "1/4", "pga", "58", "ors", "58", "cm",
            "pga", "58", "akg", "akg", "", "", "", "any")
     mics = []
-    button_nm = ("Remote", "Record", "Screen Off", "Setup",
-                 "WiFi", "Auto Level", "Quit", "Return",
+    button_nm = ("Remote", "Record", "Auto Level", "Setup",
+                 "WiFi", "TBD", "Quit", "Return",
                  "Confirm", "Confirm", "Return", "Return")
 
     def __init__(self, address, monitor, debug):
@@ -252,8 +252,8 @@ class Screen:
         meter_width = self.box_width/8
         for j in range(8):
             for i in range(2):
-                k = j + 8 * i
-                offset = self.box_height/2 * i
+                k = j + 8 * i # index for first or second row
+                offset = self.box_height/2 * i # second row offset
                 # first draw the current meter level
                 if self.xair_remote is not None:
                     meter_level = self.xair_remote.state.meters[k].mean/1024 # negative dB
