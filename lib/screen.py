@@ -254,6 +254,10 @@ class Screen:
             # first draw the current meter level
             if self.xair_remote is not None:
                 meter_level = self.xair_remote.state.meters[j].mean/1024 # negative dB
+                if meter_level > -30:
+                    meter_level = meter_level * 2
+                else:
+                    meter_level = meter_level - 30
                 bar_height = (self.box_height/2) + meter_level
                 if bar_height > 0:
                     meter_color = self.green
