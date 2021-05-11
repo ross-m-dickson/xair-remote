@@ -30,8 +30,8 @@ class Meter:
     def __init__(self):
         self.levels = deque(maxlen=self.values)
         for _ in range(self.values):
-            self.levels.append(0)
-        self.mean = 0
+            self.levels.append(-102400)
+        self.mean = -102400 * self.values
 
     def insert_level(self, value):
         'push a vlue into the fixed FIFO and update the mean'
@@ -295,6 +295,20 @@ class MixerState:
                 values.append("%0.2f" % smooth)
                 short.append(value)
                 med.append(value/256)
+            if self.clip and smooth > -3 and (i < 8 or i > 11):
+                # if clip protection is enabled and not a drum and above -3 db
+                active_bank = self.active_bank
+                fader = i
+                if fader < 8:
+                    self.active_bank = 2
+                else:
+                    self.active_bank = 3
+                    fader = fader - 8
+                self.change_headamp(fader, -1)
+                if self.debug:
+                    print("Clipping Detected headamp changed to %s" %
+                          self.banks[self.active_bank][fader].fader)
+                self.active_bank = active_bank
         if self.debug:
             #print('Meters("%s", %s) size %s length %s' % (addr, data[0], len(data[0]), data_size))
             print('Meters %s ch 8 %s %s %s' % (addr, values[7], short[7], med[7]))
