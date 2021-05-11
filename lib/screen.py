@@ -251,31 +251,31 @@ class Screen:
                                                  self.box_width, self.box_height), 1)
         meter_width = self.box_width/8
         for j in range(8):
-            # first draw the current meter level
-            if self.xair_remote is not None:
-                meter_level = self.xair_remote.state.meters[j].mean/1024 # negative dB
-                if meter_level > -30:
-                    meter_level = meter_level * 2
-                else:
-                    meter_level = meter_level - 30
-                bar_height = (self.box_height/2) + meter_level
-                if bar_height > 0:
-                    meter_color = self.green
-                    if meter_level > -10:
-                        meter_color = self.red
-                    pygame.draw.rect(self.screen, meter_color, (self.box_left + (j * meter_width),
-                                                                self.box_top - meter_level,
-                                                                meter_width, bar_height), 0)
-            # overlay the meter with the legend
-            self.screen.blit(self.numbers[j], (self.margin + (j * meter_width), 70))
-            self.screen.blit(self.words[j], (self.box_left + (j * meter_width),
-                                             70+self.num_h))
-            self.screen.blit(self.mics[j], (self.box_left + (j * meter_width), 135))
-            # show the second row
-            self.screen.blit(self.numbers[j+8], (self.margin + (j * meter_width), 155))
-            self.screen.blit(self.words[j+8], (self.box_left + (j * meter_width),
-                                               155+self.num_h))
-            self.screen.blit(self.mics[j+8], (self.box_left + (j * meter_width), 220))
+            for i in range(2):
+                k = j + 8 * i
+                offset = self.box_height/2 * i
+                # first draw the current meter level
+                if self.xair_remote is not None:
+                    meter_level = self.xair_remote.state.meters[k].mean/1024 # negative dB
+                    if meter_level > -30:
+                        meter_level = meter_level * 2
+                    else:
+                        meter_level = meter_level - 30
+                    bar_height = (self.box_height/2) + meter_level
+                    if bar_height > 0:
+                        meter_color = self.green
+                        if meter_level > -10:
+                            meter_color = self.red
+                        pygame.draw.rect(self.screen, meter_color, (self.box_left + (j * meter_width),
+                                                                    self.box_top - meter_level + offset,
+                                                                    meter_width, bar_height), 0)
+                # overlay the meter with the legend
+                self.screen.blit(self.numbers[k], (self.margin + (j * meter_width),
+                                                self.box_top + 2 + offset))
+                self.screen.blit(self.words[k], (self.box_left + (j * meter_width),
+                                                self.box_top + 2 + self.num_h + offset))
+                self.screen.blit(self.mics[k], (self.box_left + (j * meter_width),
+                                                self.box_top + 67 + offset))
         # draw the buttons
         for j in range(4):
             pygame.draw.rect(self.screen, self.yellow,
