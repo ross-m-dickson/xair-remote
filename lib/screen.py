@@ -74,7 +74,6 @@ class Screen:
     # define names for numbers
     size = width, height = 320, 240
     white = 255, 255, 255
-    yellow = 254, 255, 25
     black = 0, 0, 0
     red = 255, 0, 0
     yellow = 255, 255, 0
@@ -82,7 +81,9 @@ class Screen:
     blue = 26, 0, 255
 
     box_left = 10
+    box_top = 68
     box_width = 210
+    box_height = 170
     margin = box_left + 4
     title_center = (box_left + box_width)/2
     button_left = box_left * 1.5 + box_width
@@ -163,12 +164,15 @@ class Screen:
                 if start:
                     # initialize XAir Remote
                     self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor,
-                                                              self.debug)
+                                                              self.debug, True) # enable meters
                     if self.xair_remote.state is None or self.xair_remote.state.quit_called:
                         self.gpio_button[pos].disable[page] = 1
                     else:
                         self.xair_thread = threading.Thread(
                             target=self.xair_remote.xair.refresh_connection)
+                        self.xair_remote.state.screen_obj = self
+                        self.xair_thread.daemon = True
+                        self.xair_thread.start()
                 else:
                     # end XAir Remote threads
                     if self.xair_remote is not None:
@@ -243,16 +247,31 @@ class Screen:
         self.screen.blit(self.title, (self.title_center-(self.title_w/2), 10))
         self.screen.blit(self.sub_title, (self.title_center-(self.subtitle_w/2), 40))
         # draw channel names
-        pygame.draw.rect(self.screen, self.red, (self.box_left, 68, self.box_width, 170), 1)
+        pygame.draw.rect(self.screen, self.red, (self.box_left, self.box_top,
+                                                 self.box_width, self.box_height), 1)
+        meter_width = self.box_width/8
         for j in range(8):
-            self.screen.blit(self.numbers[j], (self.margin   + (j * self.box_width/8), 70))
-            self.screen.blit(self.words[j], (self.box_left + (j * self.box_width/8),
+            # first draw the current meter level
+            if self.xair_remote is not None:
+                meter_level = self.xair_remote.state.meters[j].mean/1024 # negative dB
+                bar_height = (self.box_height/2) + meter_level
+                if bar_height > 0:
+                    meter_color = self.green
+                    if meter_level > -10:
+                        meter_color = self.red
+                    pygame.draw.rect(self.screen, meter_color, (self.box_left + (j * meter_width), 
+                                                                self.box_top - meter_level,
+                                                                meter_width, bar_height), 0)
+            # overlay the meter with the legend
+            self.screen.blit(self.numbers[j], (self.margin + (j * meter_width), 70))
+            self.screen.blit(self.words[j], (self.box_left + (j * meter_width),
                                              70+self.num_h))
-            self.screen.blit(self.mics[j], (self.box_left + (j * self.box_width/8), 135))
-            self.screen.blit(self.numbers[j+8], (self.margin   + (j * self.box_width/8), 155))
-            self.screen.blit(self.words[j+8], (self.box_left + (j * self.box_width/8),
+            self.screen.blit(self.mics[j], (self.box_left + (j * meter_width), 135))
+            # show the second row
+            self.screen.blit(self.numbers[j+8], (self.margin + (j * meter_width), 155))
+            self.screen.blit(self.words[j+8], (self.box_left + (j * meter_width),
                                                155+self.num_h))
-            self.screen.blit(self.mics[j+8], (self.box_left + (j * self.box_width/8), 220))
+            self.screen.blit(self.mics[j+8], (self.box_left + (j * meter_width), 220))
         # draw the buttons
         for j in range(4):
             pygame.draw.rect(self.screen, self.yellow,

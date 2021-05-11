@@ -83,6 +83,8 @@ class XAirClient:
         # Tells mixer to send changes in state that have not been received from this OSC Client
         #   /xremote        - all parameter changes are broadcast to all active clients (Max 4)
         #   /xremotefnb     - No Feed Back. Parameter changes are only sent to the active clients which didn't initiate the change
+        if self.state.debug == True:
+            print("Refresh Connection %s" % self.state.clip)
         try:
             while True:
                 self.server.send_message("/xremotenfb", None)

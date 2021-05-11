@@ -110,6 +110,7 @@ class MixerState:
 
     midi_controller = None
     xair_client = None
+    screen_obj = None
 
     meters = []
     for i in range(16):
@@ -260,16 +261,17 @@ class MixerState:
 # how to set up a meter subscription
 # values send every 50ms for 10s
 # the actual call is located in xair.py in the refresch connecton method that runs every 5 s
-#self.xair_client.send(address="/meters", param=["/meters/1"]) # pre faid ch levels
-#time.sleep(0.002)
+# 
+# meters 1 provide data per channel and bus
+# self.xair_client.send(address="/meters", param=["/meters/1"]) # pre faid ch levels
+# time.sleep(0.002)
+#
 # using meters 2, input levels, as these will match the headamps even if mapped to other channels
 #        self.xair_client.send(address="/meters", param=["/meters/2"])
 #        time.sleep(0.002)
 # channel levels, not entirely clear
 #        self.xair_client.send(address="/meters", param=["/meters/0", 7])
 #        time.sleep(0.002)
-#self.xair_client.send(address="/meters/1")
-#time.sleep(0.002)
 #self.xair_client.send(address="/meters/13")
 #time.sleep(0.002)
 
@@ -289,3 +291,5 @@ class MixerState:
         #print('Meters("%s", %s) size %s length %s' % (addr, data[0], len(data[0]), data_size))
         print('Meters %s ch 8 %s %s %s' % (addr, values[7], short[7], med[7]))
         #print(values)
+        if self.screen_obj is not None:
+            self.screen_obj.screen_loop()
