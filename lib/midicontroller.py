@@ -1,6 +1,7 @@
 "See class docstring"
 import threading
 import time
+import os
 from mido import Message, open_input, open_output, get_input_names, get_output_names
 
 class MidiController:
@@ -34,7 +35,6 @@ class MidiController:
 
     inport = None
     outport = None
-    debug = False
     worker = None
 
     def __init__(self, state):
@@ -109,7 +109,7 @@ class MidiController:
                     else:
                         print('Received unknown {}'.format(msg))
                 elif msg.type == 'note_on' and msg.velocity == 127:
-                    if self.debug:
+                    if self.state.debug:
                         print('Note {} pushed'.format(msg.note))
                     if msg.note in self.MIDI_PUSH:
                         self.knob_pushed(self.MIDI_PUSH.index(msg.note))
@@ -133,7 +133,7 @@ class MidiController:
 
     def button_pushed(self, button):
         "On button press, call the relevant function"
-        if self.debug:
+        if self.state.debug:
             print('Button {} pushed'.format(button))
         if button < 8: # mute button pressed, upper row
             if self.state.active_bus < 7: # sending to a bus
@@ -142,7 +142,24 @@ class MidiController:
             elif self.state.active_bus > 7: # sending to a channel
                 self.state.toggle_channel_mute(button)
         else: # bank select button
-            self.activate_bus(button - 8)
+            if(self.state.mac and (button in [10, 11, 12, 13, 14])):
+                self.mac_button(button)
+            else:
+                self.activate_bus(button - 8)
+
+    def mac_button(self, button):
+        "call a function for transport buttons on mac"
+        if button == 10:
+            os.system("""osascript -e 'tell application "music" to previous track'""")
+        elif button == 11:
+            os.system("""osascript -e 'tell application "music" to next track'""")
+        elif button == 12:
+            self.state.xair_remote.quit()
+            exit()
+        elif button == 13:
+            os.system("""osascript -e 'tell application "music" to pause'""")
+        elif button == 14:
+            os.system("""osascript -e 'tell application "music" to play'""")
 
     def knob_pushed(self, knob):
         "On knob push reset the correct value"
@@ -150,7 +167,10 @@ class MidiController:
         if self.state.active_bus < 7:
             self.state.set_bus_send(self.state.active_bus, knob, 0.750000)
         elif self.state.active_bus == 8:    # channel levels
-            self.state.set_fader(knob, 0.750000)
+            if self.state.mac and knob in [4, 5, 7]:
+                self.state.set_fader(knob, 0.375367)
+            else:
+                self.state.set_fader(knob, 0.750000)
         elif self.state.active_bus == 9:
             if knob == 6:                   # USB Return
                 self.state.set_fader(knob, 0.750000)
@@ -161,7 +181,7 @@ class MidiController:
 
     def activate_bus(self, bus):
         "chagne the active bus"
-        if self.debug:
+        if self.state.debug:
             print('Activating bus {}'.format(bus))
         # set LEDs and layer
         if self.state.active_bus == bus and bus not in [7, 9]: # 7 and 9 have only one layer
