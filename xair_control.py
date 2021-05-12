@@ -45,9 +45,14 @@ if __name__ == '__main__':
                         help='monitor X-Touch connection and exit when disconnected',
                         action="store_true")
     PARSER.add_argument('-d', '--debug', help='enable debug output', action="store_true")
+    PARSER.add_argument('-l', '--levels', help='get levels from the mixer', action="store_false")
+    PARSER.add_argument('-c', '--clip', help='enabling auto leveling to avoid clipping',
+                        action="store_true")
+    PARSER.add_argument('-a', '--mac', help="use alternate mapping for mac", action="store_true")
+
     ARGS = PARSER.parse_args()
 
-    SCREEN_OBJ = Screen(ARGS.xair_address, ARGS.monitor, ARGS.debug)
+    SCREEN_OBJ = Screen(ARGS)
     SCREEN_OBJ.screen_loop()
 
     while True:

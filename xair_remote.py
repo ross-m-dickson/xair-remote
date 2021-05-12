@@ -12,7 +12,8 @@ class XAirRemote:
     midi = None
     xair = None
 
-    def __init__(self, xair_address, a_monitor, debug, levels, clip):
+    def __init__(self, args):
+        xair_address = args.xair_address
         if xair_address is None:
             address = find_mixer()
             if address is None:
@@ -23,7 +24,8 @@ class XAirRemote:
             else:
                 xair_address = address
 
-        self.state = MixerState()
+        self.state = MixerState(args)
+        self.state.xair_remote = self
         self.midi = MidiController(self.state)
         self.state.midi_controller = self.midi
         if self.state.quit_called:
@@ -34,15 +36,7 @@ class XAirRemote:
         if self.state.quit_called:
             return
 
-        self.state.debug = debug
-        self.midi.debug = debug
-        self.state.clip = clip
-        if clip: # clipping protection doesn't work without level info
-            levels = True
-        self.state.levels = levels
-
-
-        if a_monitor:
+        if args.monitor:
             print('Monitoring X-Touch connection enabled')
             monitor = threading.Thread(target=self.midi.monitor_ports)
             monitor.daemon = True
@@ -50,6 +44,14 @@ class XAirRemote:
 
         self.state.read_initial_state()
         self.midi.activate_bus(8)                    # set chanel level as initial bus
+
+    def quit(self):
+        "safely shutdown all threads"
+        if self.xair is not None:
+            if self.xair.server is not None:
+                self.xair.server.shutdown()
+        if self.state is not None:
+            self.state.quit_called = True
 
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser(description="""
@@ -80,8 +82,9 @@ if __name__ == '__main__':
     PARSER.add_argument('-l', '--levels', help='get levels from the mixer', action="store_true")
     PARSER.add_argument('-c', '--clip', help='enabling auto leveling to avoid clipping',
                         action="store_true")
+    PARSER.add_argument('-a', '--mac', help="use alternate mapping for mac", action="store_true")
     ARGS = PARSER.parse_args()
 
-    REMOTE = XAirRemote(ARGS.xair_address, ARGS.monitor, ARGS.debug, ARGS.levels, ARGS.clip)
+    REMOTE = XAirRemote(ARGS)
     # now start polling refresh /xremote command while running
     REMOTE.xair.refresh_connection()
