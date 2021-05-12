@@ -46,9 +46,6 @@ class MixerState:
     decide whether state changes from the X-Air device need to be
     sent to the midi controller.
     """
-    debug = False
-    clip = False
-    levels = False
     quit_called = False
 
     fx_slots = [0, 0, 0, 0]
@@ -56,67 +53,93 @@ class MixerState:
     active_bank = -1
     active_bus = -1
 
-    # Each layer has 8 encoders and 8 buttons
-    banks = [
-        [
-            Channel('/ch/01/mix'),
-            Channel('/ch/02/mix'),
-            Channel('/ch/03/mix'),
-            Channel('/ch/04/mix'),
-            Channel('/ch/05/mix'),
-            Channel('/ch/06/mix'),
-            Channel('/ch/07/mix'),
-            Channel('/ch/08/mix')
-        ],
-        [
-            Channel('/ch/09/mix'),
-            Channel('/ch/10/mix'),
-            Channel('/ch/11/mix'),
-            Channel('/ch/12/mix'),
-            Channel('/ch/13/mix'),
-            Channel('/ch/14/mix'),
-            Channel('/ch/15/mix'),
-            Channel('/ch/16/mix')
-        ],
-        [
-            Channel('/headamp/01'),
-            Channel('/headamp/02'),
-            Channel('/headamp/03'),
-            Channel('/headamp/04'),
-            Channel('/headamp/05'),
-            Channel('/headamp/06'),
-            Channel('/headamp/07'),
-            Channel('/headamp/08')
-        ],
-        [
-            Channel('/headamp/09'),
-            Channel('/headamp/10'),
-            Channel('/headamp/11'),
-            Channel('/headamp/12'),
-            Channel('/headamp/13'),
-            Channel('/headamp/14'),
-            Channel('/headamp/15'),
-            Channel('/headamp/16')
-        ],
-        [
-            Channel('/bus/1/mix'),
-            Channel('/bus/2/mix'),
-            Channel('/bus/3/mix'),
-            Channel('/bus/4/mix'),
-            Channel('/bus/5/mix'),
-            Channel('/bus/6/mix'),
-            Channel('/rtn/aux/mix'),
-            Channel('/lr/mix')
-        ]
-    ]
+    banks = []
 
     midi_controller = None
     xair_client = None
     screen_obj = None
+    xair_remote = None
 
     meters = []
     for i in range(16):
         meters.append(Meter())
+
+    def __init__(self, args) -> None:
+        self.debug = args.debug
+        self.clip = args.clip
+        self.mac = args.mac
+        if self.clip: # clipping protection doesn't work without level info
+            self.levels = True
+        else:
+            self.levels = args.levels
+
+        if self.mac:
+            self.banks = [
+                [
+                    Channel('/ch/08/mix'),
+                    Channel('/ch/07/mix'),
+                    Channel('/ch/06/mix'),
+                    Channel('/ch/05/mix'),
+                    Channel('/bus/1/mix'),
+                    Channel('/bus/2/mix'),
+                    Channel('/rtn/aux/mix'),
+                    Channel('/lr/mix')
+                ]
+            ]
+        else:
+        # Each layer has 8 encoders and 8 buttons
+            self.banks = [
+                [
+                    Channel('/ch/01/mix'),
+                    Channel('/ch/02/mix'),
+                    Channel('/ch/03/mix'),
+                    Channel('/ch/04/mix'),
+                    Channel('/ch/05/mix'),
+                    Channel('/ch/06/mix'),
+                    Channel('/ch/07/mix'),
+                    Channel('/ch/08/mix')
+                ]
+            ]
+        self.banks.append([
+                Channel('/ch/09/mix'),
+                Channel('/ch/10/mix'),
+                Channel('/ch/11/mix'),
+                Channel('/ch/12/mix'),
+                Channel('/ch/13/mix'),
+                Channel('/ch/14/mix'),
+                Channel('/ch/15/mix'),
+                Channel('/ch/16/mix')
+            ])
+        self.banks.append([
+                Channel('/headamp/01'),
+                Channel('/headamp/02'),
+                Channel('/headamp/03'),
+                Channel('/headamp/04'),
+                Channel('/headamp/05'),
+                Channel('/headamp/06'),
+                Channel('/headamp/07'),
+                Channel('/headamp/08')
+            ])
+        self.banks.append([
+                Channel('/headamp/09'),
+                Channel('/headamp/10'),
+                Channel('/headamp/11'),
+                Channel('/headamp/12'),
+                Channel('/headamp/13'),
+                Channel('/headamp/14'),
+                Channel('/headamp/15'),
+                Channel('/headamp/16')
+            ])
+        self.banks.append([
+                Channel('/bus/1/mix'),
+                Channel('/bus/2/mix'),
+                Channel('/bus/3/mix'),
+                Channel('/bus/4/mix'),
+                Channel('/bus/5/mix'),
+                Channel('/bus/6/mix'),
+                Channel('/rtn/aux/mix'),
+                Channel('/lr/mix')
+            ])
 
     def toggle_channel_mute(self, channel):
         """Toggle the state of a channel mute button."""
@@ -288,6 +311,7 @@ class MixerState:
                 break
             # get the current meter as a 16bit signed int mapped to -128db to 128db
             # 1/256 db resolution, aka .004 dB
+            # realistic values max at 0db
             value = struct.unpack("<h", data[0][(4+(i*2)):4+((i+1)*2)])[0]
             # push the value into the fixed length fifo and get the smoothed value
             smooth = self.meters[i].insert_level(value)/1024
