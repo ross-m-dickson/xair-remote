@@ -101,16 +101,15 @@ class Screen:
                  "WiFi", "TBD", "Quit", "Return",
                  "Confirm", "Confirm", "Return", "Return")
 
-    def __init__(self, address, monitor, debug):
+    def __init__(self, args):
+        self.debug = args.debug
         # initialize the pygame infrastructure
-        if debug:
+        if self.debug:
             print("start screen init")
         os.environ["SDL_FBDEV"] = "/dev/fb1"
         pygame.init()
 
-        self.address = address
-        self.monitor = monitor
-        self.debug = debug
+        self.args = args
         self.my_env = os.environ.copy()
         self.my_env['AUDIODEV'] = 'hw:X18XR18,0'
         self.record_command = ['rec', '-q', '--buffer', '262144', '-c', '18', '-b', '24']
@@ -163,8 +162,7 @@ class Screen:
             if page == 0:
                 if start:
                     # initialize XAir Remote, enable meters but not autolevel
-                    self.xair_remote = xair_remote.XAirRemote(self.address, self.monitor,
-                                                              self.debug, True, False)
+                    self.xair_remote = xair_remote.XAirRemote(self.args)
                     if self.xair_remote.state is None or self.xair_remote.state.quit_called:
                         self.gpio_button[pos].disable[page] = 1
                     else:
@@ -176,11 +174,7 @@ class Screen:
                 else:
                     # end XAir Remote threads
                     if self.xair_remote is not None:
-                        if (self.xair_remote.xair is not None and
-                                self.xair_remote.xair.server is not None):
-                            self.xair_remote.xair.server.shutdown()
-                        if self.xair_remote.state is not None:
-                            self.xair_remote.state.quit_called = True
+                        self.xair_remote.quit()
                     if self.debug:
                         print("Shutdown complete")
             elif page == 1:
@@ -191,6 +185,10 @@ class Screen:
                 else:
                     os.system("sudo systemctl stop uap@0")
             else: # page == 2:
+                if self.rec_proc is not None:
+                    self.rec_proc.terminate()
+                if self.xair_remote is not None:
+                    self.xair_remote.quit()
                 exit()
         elif pos == 1:
             if page == 0:
@@ -205,6 +203,10 @@ class Screen:
             elif page == 1:
                 print("TBD")
             else: # page == 2:
+                if self.rec_proc is not None:
+                    self.rec_proc.terminate()
+                if self.xair_remote is not None:
+                    self.xair_remote.quit()
                 exit()
         elif pos == 2:
             if page == 0:
