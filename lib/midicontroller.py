@@ -184,7 +184,7 @@ class MidiController:
         if self.state.debug:
             print('Activating bus {}'.format(bus))
         # set LEDs and layer
-        if self.state.active_bus == bus and bus not in [7, 9]: # 7 and 9 have only one layer
+        if self.state.active_bus == bus and bus != 9: # button 9 has only one layer
             # switch layers for buttons with layers
             if self.active_layer == 0:
                 self.set_button(bus + 8, self.LED_BLINK)
