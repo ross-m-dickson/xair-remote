@@ -3,8 +3,12 @@
 The XAir Control is an extension to the XAir remote that extends the remote with
 a GUI interface that runs full screen on a Raspberry Pi with PiTFT display. It
 uses the control buttons to start or stop the XAir Control, start or stop a
-recording to USB stick using sox, and eventually blank the screen, configure
-wifi, and start an autogain model once implemented.
+recording to USB stick using sox, enabling a simple auto level function to turn
+down mic preamps to avoid clipping, and eventually configure wifi. This works
+well with Shairport-Sync as downloaded and built from
+https://github.com/mikebrady/shairport-sync, I havne't tested with they binary
+available from the raspian repo as that version doesn't support my audio
+interface.
 
 ## Installing
 
@@ -27,7 +31,7 @@ display on your Pi, either via the touch screen or remotely via VNC:
 
 ## Running
 
-To run from a termin or ssh session:
+To run from a terminal or ssh session:
 
 	$ sudo python3 [path]/xair-remote/xair_control.py
 
@@ -36,3 +40,14 @@ to run from an xwindows terminal
     $ [path]/xair-remote/control.sh
 
 to run from the GUI simply click the new icon.
+
+## Recording Audio
+
+The recording system assumes you have attached an external USB 3 SDD that
+automounts at /media/pi/ExternalSSD/ to use a different path edit lib/screen.py
+at about line 200. While a fast new USB thumb drive can be used, once the drive
+ages a little it will start to skip as the flash is not enought faster than USB
+bus speed to catch up without dropping frmaes when data is being written at full
+bus speed. Most USB 3 SSD that advertize anything close to USB 3 bus speed will
+be fast enough to keep up with the USB 2 bus speed that the 18 channel audio
+requires.
