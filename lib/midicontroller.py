@@ -209,16 +209,16 @@ class MidiController:
         for i in range(0, 8):
             if self.state.banks[self.state.active_bank][i] is not None:
                 if self.state.active_bus > 6: # send fader or preamp level
-                    self.set_ring(i, self.state.banks[self.state.active_bank][i].fader)
+                    self.set_channel_fader(i, self.state.banks[self.state.active_bank][i].fader)
                     self.set_channel_mute(i, self.state.banks[self.state.active_bank][i].ch_on)
                 else:                         # send bus send
                     if self.state.banks[self.state.active_bank][i].sends is not None:
-                        self.set_ring(i, self.state.banks[ \
+                        self.set_channel_fader(i, self.state.banks[ \
                             self.state.active_bank][i].sends[self.state.active_bus])
                         self.set_channel_mute(i, self.state.banks[ \
                             self.state.active_bank][i].enables[self.state.active_bus])
             else:                             # unassigned channel, disbale encoder and button
-                self.set_ring(i, -1)
+                self.set_channel_fader(i, -1)
                 self.set_button(i, self.LED_OFF)
 
     def set_channel_mute(self, channel, ch_on):
@@ -231,17 +231,26 @@ class MidiController:
 
     def set_ring(self, ring, value):
         "Turn on the appropriate LEDs on the encoder ring."
-        # 0 = off, 1-11 = single, 17-27 = trim, 33-43 = fan, 49-54 = spread
+        # 0 = off, 1-11 = single, 17-27 = pan, 33-43 = fan, 49-54 = spread
         # normalize value (0.0 - 1.0) to 0 - 11 range
         # values below 0 mean disabled
         if value >= 0.0:
             self.outport.send(Message('control_change', channel=self.MC_CHANNEL,
                                       control=self.MIDI_RING[ring],
-                                      value=33 + round(value * 11)))
+                                      value=self.map_lights(value)))
+#                                      value=33 + round(value * 11)))
         else:
             self.outport.send(Message('control_change', channel=self.MC_CHANNEL,
                                       control=self.MIDI_RING[ring],
                                       value=0))
+
+    def map_lights(self, value):
+        "map the (0:1) range of fader values to ring light patterns"
+        # for faders -oo to -10.2db map to single lights while -10 to +10 map to the fan
+        value = 1 + round(value * 21)
+        if value > 11:
+            value = value + 22
+        return value
 
     def set_button(self, button, ch_on):
         "Turn the button LED on or off"

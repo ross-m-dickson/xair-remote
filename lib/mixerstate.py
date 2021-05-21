@@ -239,7 +239,7 @@ class MixerState:
                             print('Channel %s level %f' % (addr, value))
                         self.banks[i][j].fader = value
                         if i == self.active_bank and self.active_bus in [8, 9]:
-                            self.midi_controller.set_ring(j, value)
+                            self.midi_controller.set_channel_fader(j, value)
                     elif addr.endswith('/on'):      # channel enable
                         if self.debug:
                             print('%s unMute %d' % (addr, value))
@@ -252,13 +252,13 @@ class MixerState:
                         bus = int(addr[-8:-6]) - 1
                         self.banks[i][j].sends[bus] = value
                         if i == self.active_bank and bus == self.active_bus:
-                            self.midi_controller.set_ring(j, value)
+                            self.midi_controller.set_channel_fader(j, value)
                     elif addr.endswith('/gain'):
                         if self.debug:
                             print('%s Gain level %f' % (addr, value))
                         self.banks[i][j].fader = value
                         if i == self.active_bank:   #doesn't need a bus check as only on one bus
-                            self.midi_controller.set_ring(j, value)
+                            self.midi_controller.set_channel_fader(j, value)
                     break
             else:
                 continue
