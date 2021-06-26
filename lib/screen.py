@@ -163,6 +163,8 @@ class Screen:
         if pos == 0:
             if page == 0:
                 if start:
+                    if self.xair_remote is not None:
+                        print("previous object still here")
                     # initialize XAir Remote, enable meters but not autolevel
                     self.xair_remote = xair_remote.XAirRemote(self.args)
                     if self.xair_remote.state is None or self.xair_remote.state.quit_called:
@@ -182,11 +184,8 @@ class Screen:
             elif page == 1:
                 if start:
                     print("start wifi")
-                    #os.system("sudo systemctl stop dhcpcd && sudo systemctl start systemd-networkd",
-                    #          "&& sudo systemctl start uap@0 && sudo systemctl start dhcpcd")
                 else:
                     print("stop wifi")
-                    #os.system("sudo systemctl stop uap@0")
             else: # page == 2:
                 if self.rec_proc is not None:
                     self.rec_proc.terminate()
