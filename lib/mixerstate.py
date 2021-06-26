@@ -73,34 +73,31 @@ class MixerState:
         else:
             self.levels = args.levels
 
-        if self.mac:
-            self.banks = [
-                [
-                    Channel('/ch/08/mix'),
-                    Channel('/ch/07/mix'),
-                    Channel('/ch/06/mix'),
-                    Channel('/ch/05/mix'),
-                    Channel('/bus/1/mix'),
-                    Channel('/bus/2/mix'),
-                    Channel('/rtn/aux/mix'),
-                    Channel('/lr/mix')
-                ]
-            ]
+        if self.mac: # only a single layer, use second row of buttons as transport control
+            self.banks = [[
+                Channel('/ch/08/mix'),
+                Channel('/ch/07/mix'),
+                Channel('/ch/06/mix'),
+                Channel('/ch/05/mix'),
+                Channel('/bus/1/mix'),
+                Channel('/bus/2/mix'),
+                Channel('/rtn/aux/mix'),
+                Channel('/lr/mix')
+            ]]
         else:
         # Each layer has 8 encoders and 8 buttons
-            self.banks = [
-                [
-                    Channel('/ch/01/mix'),
-                    Channel('/ch/02/mix'),
-                    Channel('/ch/03/mix'),
-                    Channel('/ch/04/mix'),
-                    Channel('/ch/05/mix'),
-                    Channel('/ch/06/mix'),
-                    Channel('/ch/07/mix'),
-                    Channel('/ch/08/mix')
-                ]
-            ]
-        self.banks.append([
+            self.banks = [[
+                Channel('/ch/01/mix'),
+                Channel('/ch/02/mix'),
+                Channel('/ch/03/mix'),
+                Channel('/ch/04/mix'),
+                Channel('/ch/05/mix'),
+                Channel('/ch/06/mix'),
+                Channel('/ch/07/mix'),
+                Channel('/ch/08/mix')
+            ]]
+        self.banks.append(
+            [
                 Channel('/ch/09/mix'),
                 Channel('/ch/10/mix'),
                 Channel('/ch/11/mix'),
@@ -110,7 +107,8 @@ class MixerState:
                 Channel('/ch/15/mix'),
                 Channel('/ch/16/mix')
             ])
-        self.banks.append([
+        self.banks.append(
+            [
                 Channel('/headamp/01'),
                 Channel('/headamp/02'),
                 Channel('/headamp/03'),
@@ -120,7 +118,8 @@ class MixerState:
                 Channel('/headamp/07'),
                 Channel('/headamp/08')
             ])
-        self.banks.append([
+        self.banks.append(
+            [
                 Channel('/headamp/09'),
                 Channel('/headamp/10'),
                 Channel('/headamp/11'),
@@ -130,7 +129,8 @@ class MixerState:
                 Channel('/headamp/15'),
                 Channel('/headamp/16')
             ])
-        self.banks.append([
+        self.banks.append(
+            [
                 Channel('/bus/1/mix'),
                 Channel('/bus/2/mix'),
                 Channel('/bus/3/mix'),
