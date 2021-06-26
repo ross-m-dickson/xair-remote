@@ -113,6 +113,8 @@ class Screen:
         self.my_env = os.environ.copy()
         self.my_env['AUDIODEV'] = 'hw:X18XR18,0'
         self.record_command = ['rec', '-q', '--buffer', '262144', '-c', '18', '-b', '24']
+        self.record_file = ""
+        self.record_file_size = 0
 
         if self.debug:
             print("start pygame")
@@ -180,10 +182,11 @@ class Screen:
             elif page == 1:
                 if start:
                     print("start wifi")
-                    os.system("sudo systemctl stop dhcpcd && sudo systemctl start systemd-networkd",
-                              "&& sudo systemctl start uap@0 && sudo systemctl start dhcpcd")
+                    #os.system("sudo systemctl stop dhcpcd && sudo systemctl start systemd-networkd",
+                    #          "&& sudo systemctl start uap@0 && sudo systemctl start dhcpcd")
                 else:
-                    os.system("sudo systemctl stop uap@0")
+                    print("stop wifi")
+                    #os.system("sudo systemctl stop uap@0")
             else: # page == 2:
                 if self.rec_proc is not None:
                     self.rec_proc.terminate()
@@ -195,9 +198,11 @@ class Screen:
                 if start:
                     if self.debug:
                         print("start record")
+                    self.record_file = '/media/pi/ExternalSSD/%s.caf' % \
+                        datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
+                    self.record_file_size = 0
                     self.rec_proc = subprocess.Popen(self.record_command + \
-                        ['/media/pi/ExternalSSD/%s.caf' % datetime.datetime.now().\
-                            strftime("%Y-%m-%d-%H%M%S")], env=self.my_env)
+                        [self.record_file], env=self.my_env)
                 else:
                     self.rec_proc.terminate()
             elif page == 1:

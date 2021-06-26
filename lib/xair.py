@@ -1,3 +1,4 @@
+"This modules managed communications with the XAir mixer"
 import time
 import threading
 import socket
@@ -7,11 +8,13 @@ from pythonosc.osc_message import OscMessage
 from pythonosc.osc_message_builder import OscMessageBuilder
 
 class OSCClientServer(BlockingOSCUDPServer):
+    "The OSC communications agent"
     def __init__(self, address, dispatcher):
         super().__init__(('', 0), dispatcher)
         self.xr_address = address
 
     def send_message(self, address, value):
+        "Packs a message for sending via OSC over UDB."
         builder = OscMessageBuilder(address=address)
         if value is None:
             values = []
@@ -47,6 +50,7 @@ class XAirClient:
         self.worker.start()
 
     def validate_connection(self):
+        "Confirm that the connection to the XAir is live, otherwise initiaties shutdown."
         self.send('/xinfo')
         time.sleep(self._CONNECT_TIMEOUT)
         if len(self.info_response) > 0:
@@ -56,18 +60,21 @@ class XAirClient:
             print('Error: Failed to setup OSC connection to mixer.',
                   'Please check for correct ip address.')
             self.state.quit_called = True
-            if self.server != None:
+            if self.server is not None:
                 self.server.shutdown()
             #exit()
 
     def run_server(self):
+        "Start the OSC communications agent in a seperate thread."
         try:
             self.server.serve_forever()
         except KeyboardInterrupt:
+            self.state.quit_called = True
             self.server.shutdown()
-            exit()
+            #exit()
 
     def msg_handler(self, addr, *data):
+        "Dispatch received OSC messages based on message type."
         if addr.endswith('/fader') or addr.endswith('/on') or addr.endswith('/level') or \
                 addr.startswith('/config/mute') or addr.endswith('/gain'):
             self.state.received_osc(addr, data[0])
@@ -91,10 +98,16 @@ class XAirClient:
         try:
             while True:
                 self.server.send_message("/xremotenfb", None)
-                if self.state.levels or self.state.clip:
+                if self.state.levels:
                     # using input levels, as these match the headamps when channels are remapped
                     time.sleep(0.002)
-                    self.state.xair_client.send(address="/meters", param=["/meters/2"])
+                    self.send(address="/meters", param=["/meters/2"])
+                if self.state.clip: # seems to crash if clipping protection runs for too long
+                    if self.state.debug:
+                        print("start auto level")
+                    self.state.clip = False
+                    if self.state.screen_obj is not None:
+                        self.state.screen_obj.gpio_button[1].disable[0] = 1
                 time.sleep(self._REFRESH_TIMEOUT)
                 if self.state.quit_called:
                     return
@@ -102,9 +115,11 @@ class XAirClient:
             exit()
 
     def send(self, address, param=None):
+        "Call the OSC agent to send a message"
         self.server.send_message(address, param)
 
 def find_mixer():
+    "Search for the IP address of the XAir mixer"
     print('Searching for mixer...')
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, True)
