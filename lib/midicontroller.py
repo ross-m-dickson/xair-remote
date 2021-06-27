@@ -87,8 +87,7 @@ class MidiController:
             self.monitor.daemon = True
             self.monitor.start()
 
-
-    def cleaup_controller(self):
+    def cleanup_controller(self):
         "Cleanup mixer state if we see a quit call. Called from _init_ or worker thread."
         for i in range(0, 18):
             self.set_button(i, self.LED_OFF)    # clear all buttons
@@ -120,7 +119,7 @@ class MidiController:
         try:
             for msg in self.inport:
                 if self.state is None or self.state.quit_called:
-                    self.cleaup_controller()
+                    self.cleanup_controller()
                     return
                 #print('Received {}'.format(msg))
                 if msg.type == 'control_change':
@@ -155,7 +154,7 @@ class MidiController:
                     if msg.pitch > 8000:
                         if self.state is not None:
                             self.state.quit_called = True
-                        self.cleaup_controller()
+                        self.cleanup_controller()
                         if self.state.screen_obj is not None:
                             self.state.screen_obj.quit()
                         exit()
@@ -163,12 +162,12 @@ class MidiController:
                 elif msg.type != 'note_off' and msg.type != 'note_on':
                     print('Received unknown {}'.format(msg))
                 if self.state.quit_called:
-                    self.cleaup_controller()
+                    self.cleanup_controller()
                     return
         except KeyboardInterrupt:
             if self.state is not None:
                 self.state.quit_called = True
-            self.cleaup_controller()
+            self.cleanup_controller()
             exit()
 
     def button_pushed(self, button):
