@@ -13,6 +13,8 @@ git clone https://github.com/adafruit/Raspberry-Pi-Installer-Scripts.git
 cd Raspberry-Pi-Installer-Scripts
 sudo python3 adafruit-pitft.py
 
+sudo pip3 install netifaces
+
 After much rework, I've decided to follow the instrucitons at
 https://raspberrypi.stackexchange.com/questions/88954/workaround-for-a-wifi-bridge-on-a-raspberry-pi-with-proxy-arp/
 in the Dynamic configuration of proxy arp with monitoring interfaces section as

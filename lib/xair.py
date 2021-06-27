@@ -2,6 +2,7 @@
 import time
 import threading
 import socket
+import netifaces
 from pythonosc.dispatcher import Dispatcher
 from pythonosc.osc_server import BlockingOSCUDPServer
 from pythonosc.osc_message import OscMessage
@@ -139,8 +140,13 @@ def find_mixer():
     print('Searching for mixer...')
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, True)
-    client.settimeout(15)
-    client.sendto("/xinfo\0\0".encode(), ("<broadcast>", XAirClient.XAIR_PORT))
+    client.settimeout(5)
+    for iface in netifaces.interfaces():
+        try:
+            bcast = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['broadcast']
+            client.sendto("/xinfo\0\0".encode(), (bcast, XAirClient.XAIR_PORT))
+        except:
+            pass
     try:
         response = OscMessage(client.recv(512))
     except socket.timeout:
