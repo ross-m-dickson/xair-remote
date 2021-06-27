@@ -62,6 +62,7 @@ class XAirClient:
             self.state.quit_called = True
             if self.server is not None:
                 self.server.shutdown()
+                self.server = None
             #exit()
 
     def run_server(self):
@@ -70,8 +71,14 @@ class XAirClient:
             self.server.serve_forever()
         except KeyboardInterrupt:
             self.state.quit_called = True
-            self.server.shutdown()
+            self.stop_server()
+            return
             #exit()
+
+    def stop_server(self):
+        if self.server is not None:
+            self.server.shutdown()
+            self.server = None
 
     def msg_handler(self, addr, *data):
         "Dispatch received OSC messages based on message type."
