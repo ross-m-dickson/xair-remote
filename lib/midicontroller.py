@@ -48,6 +48,7 @@ class MidiController:
                 except IOError:
                     print('Error: Can not open MIDI input port ' + name)
                     self.state.quit_called = True
+                    self.state = None
                     #exit()
                     return
                 break
@@ -60,6 +61,7 @@ class MidiController:
                 except IOError:
                     print('Error: Can not open MIDI input port ' + name)
                     self.state.quit_called = True
+                    self.state = None
                     #exit()
                     return
                 break
@@ -67,6 +69,7 @@ class MidiController:
         if self.inport is None or self.outport is None:
             print('X-Touch Mini not found. Make sure device is connected!')
             self.state.quit_called = True
+            self.cleanup_controller()
             #exit()
             return
 
@@ -77,6 +80,17 @@ class MidiController:
         self.worker.daemon = True
         self.worker.start()
 
+    def cleaup_controller(self):
+        "Cleanup mixer state if we see a quit call. Called from _init_ or worker thread."
+        for i in range(0, 18):
+            self.set_button(i, self.LED_OFF)    # clear all buttons
+        for i in range(0,8):
+            self.set_ring(i,0)
+        if self.inport is not None:
+            self.inport.close()
+        if self.output is not None:
+            self.outport.close()
+
     def monitor_ports(self):
         "Method to exit if / when the X Touch disconnects"
         try:
@@ -85,6 +99,8 @@ class MidiController:
                     print("X-Touch disconnected - Exiting")
                     self.state.quit_called = True
                     return
+                if self.state.quit_called:
+                    return # end the thread if other threads have signed exit
                 time.sleep(1)
         except KeyboardInterrupt:
             exit()
@@ -93,6 +109,9 @@ class MidiController:
         "Listen to midit inputs and respond."
         try:
             for msg in self.inport:
+                if self.state.quit_called:
+                    self.cleaup_controller()
+                    return
                 #print('Received {}'.format(msg))
                 if msg.type == 'control_change':
                     if msg.control in self.MIDI_ENCODER:
@@ -125,10 +144,10 @@ class MidiController:
                 elif msg.type != 'note_off' and msg.type != 'note_on':
                     print('Received unknown {}'.format(msg))
                 if self.state.quit_called:
+                    self.cleaup_controller()
                     return
         except KeyboardInterrupt:
-            self.inport.close()
-            self.outport.close()
+            self.cleaup_controller()
             exit()
 
     def button_pushed(self, button):
