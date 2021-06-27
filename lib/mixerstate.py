@@ -179,6 +179,7 @@ class MixerState:
             self.xair_client.stop_server()
             self.xair_client = None
         if self.midi_controller is not None:
+            self.midi_controller.cleanup_controller()
             self.midi_controller = None
 
 
