@@ -1,57 +1,7 @@
 "Starts an xAir remote, see main help string for more"
 #!/usr/bin/env python3
 import argparse
-import threading
-from lib.midicontroller import MidiController
-from lib.xair import XAirClient, find_mixer
 from lib.mixerstate import MixerState
-
-class XAirRemote:
-    "Initialize the XAir remote infrastructure"
-    state = None
-    midi = None
-    xair = None
-
-    def __init__(self, args):
-        xair_address = args.xair_address
-        if xair_address is None:
-            address = find_mixer()
-            if address is None:
-                print('Error: Could not find any mixers in network.',
-                      'Please specify ip address manually.')
-                #return
-                xair_address = "192.168.50.146"
-            else:
-                xair_address = address
-
-        self.state = MixerState(args)
-        self.state.xair_remote = self
-        self.midi = MidiController(self.state)
-        self.state.midi_controller = self.midi
-        if self.state.quit_called:
-            return
-        self.xair = XAirClient(xair_address, self.state)
-        self.state.xair_client = self.xair
-        self.xair.validate_connection()
-        if self.state.quit_called:
-            return
-
-        if args.monitor:
-            print('Monitoring X-Touch connection enabled')
-            monitor = threading.Thread(target=self.midi.monitor_ports)
-            monitor.daemon = True
-            monitor.start()
-
-        self.state.read_initial_state()
-        self.midi.activate_bus(8)                    # set chanel level as initial bus
-
-    def quit(self):
-        "safely shutdown all threads"
-        if self.xair is not None:
-            if self.xair.server is not None:
-                self.xair.server.shutdown()
-        if self.state is not None:
-            self.state.quit_called = True
 
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser(description="""
@@ -85,6 +35,7 @@ if __name__ == '__main__':
     PARSER.add_argument('-a', '--mac', help="use alternate mapping for mac", action="store_true")
     ARGS = PARSER.parse_args()
 
-    REMOTE = XAirRemote(ARGS)
-    # now start polling refresh /xremote command while running
-    REMOTE.xair.refresh_connection()
+    REMOTE = MixerState(ARGS)
+    if REMOTE.initialize_state():
+        # now start polling refresh /xremote command while running
+        REMOTE.xair_client.refresh_connection()
