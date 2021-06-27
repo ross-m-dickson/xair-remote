@@ -70,16 +70,20 @@ class XAirClient:
         try:
             self.server.serve_forever()
         except KeyboardInterrupt:
-            if self.state is not None:
-                self.state.quit_called = True
-            self.stop_server()
-            return
-            #exit()
+            self.quit()
+            exit()
 
     def stop_server(self):
         if self.server is not None:
             self.server.shutdown()
             self.server = None
+
+    def quit(self):
+        if self.state is not None:
+            self.state.quit_called = True
+            if self.state.midi_controller is not None:
+                self.state.midi_controller.cleanup_controller()
+        self.stop_server()
 
     def msg_handler(self, addr, *data):
         if self.state is None or self.state.quit_called:
@@ -123,8 +127,7 @@ class XAirClient:
                 if self.state.quit_called:
                     return
         except KeyboardInterrupt:
-            if self.state is not None:
-                self.state.quit_called = True
+            self.quit()
             exit()
 
     def send(self, address, param=None):
