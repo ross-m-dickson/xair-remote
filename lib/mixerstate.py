@@ -4,8 +4,10 @@ This module holds the mixer state of the X-Air device
 
 import time
 import struct
+import threading
 from collections import deque
-
+from lib.xair import XAirClient, find_mixer
+from lib.midicontroller import MidiController
 class Channel:
     """
     Represents a single channel strip
@@ -58,20 +60,23 @@ class MixerState:
     midi_controller = None
     xair_client = None
     screen_obj = None
-    xair_remote = None
 
     meters = []
     for i in range(16):
         meters.append(Meter())
 
     def __init__(self, args) -> None:
+        # split the arguments out to useful values
         self.debug = args.debug
         self.clip = args.clip
         self.mac = args.mac
+        self.xair_address = args.xair_address
+        self.a_monitor = args.monitor
+        self.levels = args.levels
+
+        # initialize internal data structures
         if self.clip: # clipping protection doesn't work without level info
             self.levels = True
-        else:
-            self.levels = args.levels
 
         if self.mac: # only a single layer, use second row of buttons as transport control
             self.banks = [[
@@ -140,6 +145,49 @@ class MixerState:
                 Channel('/rtn/aux/mix'),
                 Channel('/lr/mix')
             ])
+
+    def initialize_state(self):
+        self.quit_called = False
+        # determine the mixer address
+        if self.xair_address is None:
+            self.xair_address = find_mixer()
+            if self.xair_address is None:
+                print('Error: Could not find any mixers in network.',
+                      'Using default ip address.')
+                self.xair_address = "192.168.50.146"
+
+        # setup other modules
+        self.midi_controller = MidiController(self)
+        if self.quit_called:
+            self.midi_controller = None
+            return False
+        self.xair_client = XAirClient(self.xair_address, self)
+        self.xair_client.validate_connection()
+        if self.quit_called:
+            self.midi_controller = None
+            self.xair_client = None
+            return False
+
+        if self.a_monitor:
+            print('Monitoring X-Touch connection enabled')
+            monitor = threading.Thread(target=self.midi_controller.monitor_ports)
+            monitor.daemon = True
+            monitor.start()
+
+        self.read_initial_state()
+        self.midi_controller.activate_bus(0)     # in case of reset
+        self.midi_controller.activate_bus(8)     # set chanel level as initial bus
+        return True
+
+    def shutdown(self):
+        self.quit_called = True
+        "safely shutdown all threads"
+        if self.xair_client is not None:
+            self.xair_client.stop_server()
+            self.xair_client = None
+        if self.midi_controller is not None:
+            self.midi_controller = None
+
 
     def toggle_channel_mute(self, channel):
         """Toggle the state of a channel mute button."""
