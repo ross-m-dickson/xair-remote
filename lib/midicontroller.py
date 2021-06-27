@@ -157,6 +157,8 @@ class MidiController:
                     self.cleaup_controller()
                     return
         except KeyboardInterrupt:
+            if self.state is not None:
+                self.state.quit_called = True
             self.cleaup_controller()
             exit()
 

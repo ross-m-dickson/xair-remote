@@ -70,7 +70,8 @@ class XAirClient:
         try:
             self.server.serve_forever()
         except KeyboardInterrupt:
-            self.state.quit_called = True
+            if self.state is not None:
+                self.state.quit_called = True
             self.stop_server()
             return
             #exit()
@@ -81,6 +82,9 @@ class XAirClient:
             self.server = None
 
     def msg_handler(self, addr, *data):
+        if self.state is None or self.state.quit_called:
+            self.stop_server()
+            return
         "Dispatch received OSC messages based on message type."
         if addr.endswith('/fader') or addr.endswith('/on') or addr.endswith('/level') or \
                 addr.startswith('/config/mute') or addr.endswith('/gain'):
@@ -93,7 +97,7 @@ class XAirClient:
             print('OSCReceived("%s", %s)' % (addr, data))
 
 
-    def refresh_connection(self):
+    def refresh_connection(self): # the main loop
         """
         Tells mixer to send changes in state that have not been received from this OSC Client
           /xremote        - all parameter changes are broadcast to all active clients (Max 4)
@@ -103,7 +107,7 @@ class XAirClient:
         if self.state.debug:
             print("Refresh Connection %s" % self.state.levels)
         try:
-            while True:
+            while not self.state.quit_called and self.server is not None:
                 self.server.send_message("/xremotenfb", None)
                 if self.state.levels:
                     # using input levels, as these match the headamps when channels are remapped
@@ -119,6 +123,8 @@ class XAirClient:
                 if self.state.quit_called:
                     return
         except KeyboardInterrupt:
+            if self.state is not None:
+                self.state.quit_called = True
             exit()
 
     def send(self, address, param=None):
