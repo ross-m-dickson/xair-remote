@@ -55,5 +55,5 @@ if __name__ == '__main__':
     SCREEN_OBJ = Screen(ARGS)
     SCREEN_OBJ.screen_loop()
 
-    while True:
+    while SCREEN_OBJ is not None and SCREEN_OBJ.running:
         sleep(5)

@@ -70,6 +70,7 @@ class Screen:
     xair_remote = None
     xair_thread = None
     rec_proc = None
+    running = True
 
     # define names for numbers
     size = width, height = 320, 240
@@ -97,8 +98,7 @@ class Screen:
     mic = ("1/4", "1/4", "1/4", "pga", "58", "ors", "58", "cm",
            "pga", "58", "akg", "akg", "", "", "", "any")
     mics = []
-    button_nm = ("Remote", "Record", "Auto Level", "Setup",
-                 "WiFi", "TBD", "Quit", "Return",
+    button_nm = ("Remote", "Record", "Auto Level", "Quit",
                  "Confirm", "Confirm", "Return", "Return")
 
     def __init__(self, args):
@@ -121,7 +121,7 @@ class Screen:
         # define pygame values
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                exit()
+                self.quit()
         self.screen = pygame.display.set_mode([320, 240], pygame.FULLSCREEN)
         # define font sizes
         if self.debug:
@@ -147,8 +147,8 @@ class Screen:
                                                                   1, (self.red)), 315))
             self.numbers.append(font.render("%02d" % (j+1), 1, (self.red)))
             self.mics.append(smfont.render(self.mic[j], 1, (self.red)))
-        for i in range(4):
-            for j in range(3):
+        for i in range(4): # for the 4 buttons
+            for j in range(2): # for the 2 pages
                 self.gpio_button[i].image.append(
                     font.render(self.button_nm[i+(j*4)], 1, (self.blue)))
 
@@ -157,6 +157,18 @@ class Screen:
         self.num_w, self.num_h = self.numbers[7].get_size()
         if self.debug:
             print("finish screen init")
+
+    def quit(self):
+        try:
+            if self.rec_proc is not None:
+                self.rec_proc.terminate()
+            if self.xair_remote is not None:
+                self.xair_remote.shutdown()
+            self.running = False
+            pygame.quit()
+            exit()
+        except:
+            exit()
 
     def button_function(self, pos, page, start):
         "Start the function specified by the button and page"
@@ -180,17 +192,8 @@ class Screen:
                         self.xair_remote.shutdown()
                     if self.debug:
                         print("Shutdown complete")
-            elif page == 1:
-                if start:
-                    print("start wifi")
-                else:
-                    print("stop wifi")
-            else: # page == 2:
-                if self.rec_proc is not None:
-                    self.rec_proc.terminate()
-                if self.xair_remote is not None:
-                    self.xair_remote.shutdown()
-                exit()
+            else: # quit page:
+                self.quit()
         elif pos == 1:
             if page == 0:
                 if start:
@@ -203,14 +206,8 @@ class Screen:
                         [self.record_file], env=self.my_env)
                 else:
                     self.rec_proc.terminate()
-            elif page == 1:
-                print("TBD")
-            else: # page == 2:
-                if self.rec_proc is not None:
-                    self.rec_proc.terminate()
-                if self.xair_remote is not None:
-                    self.xair_remote.quit()
-                exit()
+            else: # quit page:
+                self.quit()
         elif pos == 2:
             if page == 0:
                 if start:
@@ -225,32 +222,22 @@ class Screen:
                         self.xair_remote.clip = False
                     if self.debug:
                         print("auto level disabled")
-            elif page == 1:
-                # power off menu, change to page 2
-                self.gpio_button[pos].set_disable(1) # disable button
+            else: # quit page
+                # return from power off menu, change to page 0
+                self.gpio_button[pos].set_disable(1) # disable button light
                 for i in range(4):
-                    self.gpio_button[i].page = 2 # switch screen
-            else: # page == 2:
-                # return from power off menu, change to page 1
-                self.gpio_button[pos].set_disable(1) # disable button
-                for i in range(4):
-                    self.gpio_button[i].page = 1 # switch screen
+                    self.gpio_button[i].page = 0 # switch screen
         else:
             if page == 0:
                 # setup menu, disable page
                 self.gpio_button[pos].set_disable(1) # disable button
                 for i in range(4):
                     self.gpio_button[i].page = 1 # switch screen
-            elif page == 1:
-                # return from setup menu, change to page 0
-                self.gpio_button[pos].set_disable(1) # disable button
-                for i in range(4):
-                    self.gpio_button[i].page = 0 # switch screen
             else: # page == 2:
                 # return from power off menu, change to page 1
-                self.gpio_button[pos].set_disable(1) # disable button
+                self.gpio_button[pos].set_disable(1) # disable button light
                 for i in range(4):
-                    self.gpio_button[i].page = 1 # switch screen
+                    self.gpio_button[i].page = 0 # switch screen
 
     def screen_loop(self):
         """Update the screen after an event."""
