@@ -92,7 +92,7 @@ class MidiController:
         for i in range(0, 18):
             self.set_button(i, self.LED_OFF)    # clear all buttons
         for i in range(0,8):
-            self.set_ring(i,0)
+            self.set_ring(i,-1)
         if self.inport is not None:
             self.inport.close()
         if self.outport is not None:
