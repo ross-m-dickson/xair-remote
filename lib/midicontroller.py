@@ -36,6 +36,7 @@ class MidiController:
     inport = None
     outport = None
     worker = None
+    monitor = None
 
     def __init__(self, state):
         self.state = state
@@ -80,6 +81,13 @@ class MidiController:
         self.worker.daemon = True
         self.worker.start()
 
+        if self.state.monitor:
+            print('Monitoring X-Touch connection enabled')
+            self.monitor = threading.Thread(target=self.monitor_ports)
+            self.monitor.daemon = True
+            self.monitor.start()
+
+
     def cleaup_controller(self):
         "Cleanup mixer state if we see a quit call. Called from _init_ or worker thread."
         for i in range(0, 18):
@@ -94,7 +102,7 @@ class MidiController:
     def monitor_ports(self):
         "Method to exit if / when the X Touch disconnects"
         try:
-            while True:
+            while not self.state.quit_called:
                 if self.inport.name not in get_input_names():
                     print("X-Touch disconnected - Exiting")
                     self.state.quit_called = True
@@ -103,13 +111,15 @@ class MidiController:
                     return # end the thread if other threads have signed exit
                 time.sleep(1)
         except KeyboardInterrupt:
+            if self.state is not None:
+                self.state.quit_called = True
             exit()
 
     def midi_listener(self):
         "Listen to midit inputs and respond."
         try:
             for msg in self.inport:
-                if self.state.quit_called:
+                if self.state is None or self.state.quit_called:
                     self.cleaup_controller()
                     return
                 #print('Received {}'.format(msg))

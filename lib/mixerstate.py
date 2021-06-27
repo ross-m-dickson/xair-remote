@@ -4,7 +4,6 @@ This module holds the mixer state of the X-Air device
 
 import time
 import struct
-import threading
 from collections import deque
 from lib.xair import XAirClient, find_mixer
 from lib.midicontroller import MidiController
@@ -71,7 +70,7 @@ class MixerState:
         self.clip = args.clip
         self.mac = args.mac
         self.xair_address = args.xair_address
-        self.a_monitor = args.monitor
+        self.monitor = args.monitor
         self.levels = args.levels
 
         # initialize internal data structures
@@ -167,12 +166,6 @@ class MixerState:
             self.midi_controller = None
             self.xair_client = None
             return False
-
-        if self.a_monitor:
-            print('Monitoring X-Touch connection enabled')
-            monitor = threading.Thread(target=self.midi_controller.monitor_ports)
-            monitor.daemon = True
-            monitor.start()
 
         self.read_initial_state()
         self.midi_controller.activate_bus(0)     # in case of reset
