@@ -96,7 +96,7 @@ class MidiController:
             self.set_ring(i,0)
         if self.inport is not None:
             self.inport.close()
-        if self.output is not None:
+        if self.outport is not None:
             self.outport.close()
 
     def monitor_ports(self):
@@ -150,6 +150,15 @@ class MidiController:
                         print('Received unknown {}'.format(msg))
                 elif msg.type == 'pitchwheel':
                     value = (msg.pitch + 8192) / 16384
+                    if self.state.debug:
+                        print('Wheel set to {}'.format(msg))
+                    if msg.pitch > 8000:
+                        if self.state is not None:
+                            self.state.quit_called = True
+                        self.cleaup_controller()
+                        if self.state.screen_obj is not None:
+                            self.state.screen_obj.quit()
+                        exit()
                     #self.state.set_lr_fader(value) # unused move master fader to second layer
                 elif msg.type != 'note_off' and msg.type != 'note_on':
                     print('Received unknown {}'.format(msg))
@@ -185,7 +194,8 @@ class MidiController:
         elif button == 11:
             os.system("""osascript -e 'tell application "music" to next track'""")
         elif button == 12:
-            self.state.xair_remote.quit()
+            self.state.shutdown()
+            self.cleanup_controller()
             exit()
         elif button == 13:
             os.system("""osascript -e 'tell application "music" to pause'""")
