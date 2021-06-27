@@ -9,7 +9,7 @@ import subprocess
 import pygame
 from gpiozero import Button
 
-import xair_remote
+from lib.mixerstate import MixerState
 
 class GPIOButton:
     """Stores a GPIO button, its state, and the event callback function."""
@@ -163,22 +163,21 @@ class Screen:
         if pos == 0:
             if page == 0:
                 if start:
-                    if self.xair_remote is not None:
-                        print("previous object still here")
-                    # initialize XAir Remote, enable meters but not autolevel
-                    self.xair_remote = xair_remote.XAirRemote(self.args)
-                    if self.xair_remote.state is None or self.xair_remote.state.quit_called:
-                        self.gpio_button[pos].disable[page] = 1
-                    else:
+                    if self.xair_remote is None:
+                        self.xair_remote = MixerState(self.args)
+                    if self.xair_remote.initialize_state():
+                        # now start polling refresh /xremote command while running
                         self.xair_thread = threading.Thread(
-                            target=self.xair_remote.xair.refresh_connection)
-                        self.xair_remote.state.screen_obj = self
+                            target=self.xair_remote.xair_client.refresh_connection)
+                        self.xair_remote.screen_obj = self
                         self.xair_thread.daemon = True
                         self.xair_thread.start()
+                    else:
+                        self.gpio_button[pos].disable[page] = 1
                 else:
                     # end XAir Remote threads
                     if self.xair_remote is not None:
-                        self.xair_remote.quit()
+                        self.xair_remote.shutdown()
                     if self.debug:
                         print("Shutdown complete")
             elif page == 1:
@@ -190,7 +189,7 @@ class Screen:
                 if self.rec_proc is not None:
                     self.rec_proc.terminate()
                 if self.xair_remote is not None:
-                    self.xair_remote.quit()
+                    self.xair_remote.shutdown()
                 exit()
         elif pos == 1:
             if page == 0:
@@ -217,13 +216,13 @@ class Screen:
                 if start:
                     if self.debug:
                         print("start auto level")
-                    if self.xair_remote.state is None or self.xair_remote.state.quit_called:
+                    if self.xair_remote is None or self.xair_remote.quit_called:
                         self.gpio_button[pos].disable[page] = 1
                     else:
-                        self.xair_remote.state.clip = True
+                        self.xair_remote.clip = True
                 else:
-                    if self.xair_remote.state is not None:
-                        self.xair_remote.state.clip = False
+                    if self.xair_remote is not None:
+                        self.xair_remote.clip = False
                     if self.debug:
                         print("auto level disabled")
             elif page == 1:
@@ -273,7 +272,7 @@ class Screen:
                 offset = self.box_height/2 * i # second row offset
                 # first draw the current meter level
                 if self.xair_remote is not None:
-                    meter_level = self.xair_remote.state.meters[k].mean/1024 # negative dB
+                    meter_level = self.xair_remote.meters[k].mean/1024 # negative dB
                     if meter_level > -30:
                         meter_level = meter_level * 2
                     else:
