@@ -130,6 +130,8 @@ class XAirClient:
         except KeyboardInterrupt:
             self.quit()
             exit()
+        except socket.error:
+            self.quit()
 
     def send(self, address, param=None):
         "Call the OSC agent to send a message"
