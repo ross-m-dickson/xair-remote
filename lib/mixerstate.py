@@ -3,10 +3,12 @@ This module holds the mixer state of the X-Air device
 """
 
 import time
+import subprocess
 import struct
 from collections import deque
 from lib.xair import XAirClient, find_mixer
 from lib.midicontroller import MidiController
+
 class Channel:
     """
     Represents a single channel strip
@@ -47,6 +49,7 @@ class MixerState:
     decide whether state changes from the X-Air device need to be
     sent to the midi controller.
     """
+
     quit_called = False
 
     fx_slots = [0, 0, 0, 0]
@@ -55,6 +58,8 @@ class MixerState:
     active_bus = -1
 
     banks = []
+
+    mpd_playing = True
 
     midi_controller = None
     xair_client = None
@@ -67,16 +72,17 @@ class MixerState:
     def __init__(self, args) -> None:
         # split the arguments out to useful values
         self.debug = args.debug
-        self.clip = args.clip
-        self.mac = args.mac
         self.xair_address = args.xair_address
         self.monitor = args.monitor
+        self.clip = args.clip
+        self.mac = args.mac
         self.levels = args.levels
 
         # initialize internal data structures
         if self.clip: # clipping protection doesn't work without level info
             self.levels = True
 
+        # Each layer has 8 encoders and 8 buttons
         if self.mac: # only a single layer, use second row of buttons as transport control
             self.banks = [[
                 Channel('/ch/08/mix'),
@@ -89,7 +95,6 @@ class MixerState:
                 Channel('/lr/mix')
             ]]
         else:
-        # Each layer has 8 encoders and 8 buttons
             self.banks = [[
                 Channel('/ch/01/mix'),
                 Channel('/ch/02/mix'),
@@ -182,7 +187,6 @@ class MixerState:
             self.midi_controller.cleanup_controller()
             self.midi_controller = None
 
-
     def toggle_channel_mute(self, channel):
         """Toggle the state of a channel mute button."""
         if self.banks[self.active_bank][channel] is not None:
@@ -273,38 +277,39 @@ class MixerState:
 
     def received_osc(self, addr, value):
         """Process an OSC input."""
-        for i in range(0, 5):
-            for j in range(0, 8):
-                if self.banks[i][j] is not None and addr.startswith(self.banks[i][j].osc_base_addr):
-                    if addr.endswith('/fader'):     # chanel fader level
-                        if self.debug:
-                            print('Channel %s level %f' % (addr, value))
-                        self.banks[i][j].fader = value
-                        if i == self.active_bank and self.active_bus in [8, 9]:
-                            self.midi_controller.set_channel_fader(j, value)
-                    elif addr.endswith('/on'):      # channel enable
-                        if self.debug:
-                            print('%s unMute %d' % (addr, value))
-                        self.banks[i][j].ch_on = value
-                        if i == self.active_bank and self.active_bus in [8, 9]:
-                            self.midi_controller.set_channel_mute(j, value)
-                    elif self.banks[i][j].sends is not None and addr.endswith('/level'):
-                        if self.debug:
-                            print('%s level %f' % (addr, value))
-                        bus = int(addr[-8:-6]) - 1
-                        self.banks[i][j].sends[bus] = value
-                        if i == self.active_bank and bus == self.active_bus:
-                            self.midi_controller.set_channel_fader(j, value)
-                    elif addr.endswith('/gain'):
-                        if self.debug:
-                            print('%s Gain level %f' % (addr, value))
-                        self.banks[i][j].fader = value
-                        if i == self.active_bank:   #doesn't need a bus check as only on one bus
-                            self.midi_controller.set_channel_fader(j, value)
-                    break
-            else:
-                continue
-            break
+        if True:
+            for i in range(0, 5):
+                for j in range(0, 8):
+                    if self.banks[i][j] is not None and addr.startswith(self.banks[i][j].osc_base_addr):
+                        if addr.endswith('/fader'):     # chanel fader level
+                            if self.debug:
+                                print('Channel %s level %f' % (addr, value))
+                            self.banks[i][j].fader = value
+                            if i == self.active_bank and self.active_bus in [8, 9]:
+                                self.midi_controller.set_channel_fader(j, value)
+                        elif addr.endswith('/on'):      # channel enable
+                            if self.debug:
+                                print('%s unMute %d' % (addr, value))
+                            self.banks[i][j].ch_on = value
+                            if i == self.active_bank and self.active_bus in [8, 9]:
+                                self.midi_controller.set_channel_mute(j, value)
+                        elif self.banks[i][j].sends is not None and addr.endswith('/level'):
+                            if self.debug:
+                                print('%s level %f' % (addr, value))
+                            bus = int(addr[-8:-6]) - 1
+                            self.banks[i][j].sends[bus] = value
+                            if i == self.active_bank and bus == self.active_bus:
+                                self.midi_controller.set_channel_fader(j, value)
+                        elif addr.endswith('/gain'):
+                            if self.debug:
+                                print('%s Gain level %f' % (addr, value))
+                            self.banks[i][j].fader = value
+                            if i == self.active_bank:   #doesn't need a bus check as only on one bus
+                                self.midi_controller.set_channel_fader(j, value)
+                        break
+                else:
+                    continue
+                break
 
     def read_initial_state(self):
         """ Refresh state for all faders and mutes."""
