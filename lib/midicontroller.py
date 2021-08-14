@@ -4,6 +4,48 @@ import time
 import os
 from mido import Message, open_input, open_output, get_input_names, get_output_names
 
+class TempoDetector:
+    """
+    Detect song tempo via a tap button
+    """
+    _MAX_TAP_DURATION = 3.0
+
+    current_tempo = 0.5
+
+    def __init__(self, midi_controller):
+        self.midi_controller = midi_controller
+        self.last_tap = 0
+        self.tap_num = 0
+        self.tap_delta = 0
+        worker = threading.Thread(target = self.blink)
+        worker.daemon = True
+        worker.start()
+
+    def tap(self):
+        current_time = time.time()
+        if current_time - self.last_tap > self._MAX_TAP_DURATION:
+            # Start with new tap cycle
+            self.tap_num = 0
+            self.tap_delta = 0
+        else:
+            self.tap_num += 1
+            self.tap_delta += current_time - self.last_tap
+            if self.tap_num > 0:
+                # Update tempo in mixer after at least 2 taps
+                self.midi_controller.update_tempo(self.tap_delta / self.tap_num, True)
+                self.current_tempo = self.tap_delta / self.tap_num
+        self.last_tap = current_time
+
+    def blink(self):
+        try:
+            while True:
+                self.midi_controller.tempo_led(True)
+                time.sleep(self.current_tempo * 0.2)
+                self.midi_controller.tempo_led(False)
+                time.sleep(self.current_tempo * 0.8)
+        except KeyboardInterrupt:
+            exit()
+
 class MidiController:
     """
     Handles communication with the MIDI surface.
@@ -30,13 +72,10 @@ class MidiController:
     LED_BLINK = 1
     LED_ON = 127
 
-    # This sets up the X-Air with 10 layers, the 8 bottom row buttons
     active_layer = 0
 
     inport = None
     outport = None
-    worker = None
-    monitor = None
 
     def __init__(self, state):
         self.state = state
@@ -77,15 +116,15 @@ class MidiController:
         for i in range(0, 18):
             self.set_button(i, self.LED_OFF)    # clear all buttons
 
-        self.worker = threading.Thread(target=self.midi_listener)
-        self.worker.daemon = True
-        self.worker.start()
+        worker = threading.Thread(target=self.midi_listener)
+        worker.daemon = True
+        worker.start()
 
         if self.state.monitor:
             print('Monitoring X-Touch connection enabled')
-            self.monitor = threading.Thread(target=self.monitor_ports)
-            self.monitor.daemon = True
-            self.monitor.start()
+            monitor = threading.Thread(target=self.monitor_ports)
+            monitor.daemon = True
+            monitor.start()
 
     def cleanup_controller(self):
         "Cleanup mixer state if we see a quit call. Called from _init_ or worker thread."
@@ -104,6 +143,7 @@ class MidiController:
             while not self.state.quit_called:
                 if self.inport.name not in get_input_names():
                     print("X-Touch disconnected - Exiting")
+                    #os._exit(1)
                     self.state.quit_called = True
                     return
                 if self.state.quit_called:
@@ -158,7 +198,6 @@ class MidiController:
                         if self.state.screen_obj is not None:
                             self.state.screen_obj.quit()
                         exit()
-                    #self.state.set_lr_fader(value) # unused move master fader to second layer
                 elif msg.type != 'note_off' and msg.type != 'note_on':
                     print('Received unknown {}'.format(msg))
                 if self.state.quit_called:
