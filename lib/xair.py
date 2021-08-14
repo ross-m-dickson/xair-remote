@@ -37,7 +37,6 @@ class XAirClient:
     _REFRESH_TIMEOUT = 5
 
     XAIR_PORT = 10024
-    worker = None
 
     info_response = []
 
@@ -46,9 +45,9 @@ class XAirClient:
         dispatcher = Dispatcher()
         dispatcher.set_default_handler(self.msg_handler)
         self.server = OSCClientServer((address, self.XAIR_PORT), dispatcher)
-        self.worker = threading.Thread(target=self.run_server)
-        self.worker.daemon = True
-        self.worker.start()
+        worker = threading.Thread(target=self.run_server)
+        worker.daemon = True
+        worker.start()
 
     def validate_connection(self):
         "Confirm that the connection to the XAir is live, otherwise initiaties shutdown."
@@ -87,10 +86,10 @@ class XAirClient:
         self.stop_server()
 
     def msg_handler(self, addr, *data):
+        "Dispatch received OSC messages based on message type."
         if self.state is None or self.state.quit_called:
             self.stop_server()
             return
-        "Dispatch received OSC messages based on message type."
         if addr.endswith('/fader') or addr.endswith('/on') or addr.endswith('/level') or \
                 addr.startswith('/config/mute') or addr.endswith('/gain'):
             self.state.received_osc(addr, data[0])
@@ -100,7 +99,6 @@ class XAirClient:
             self.state.received_meters(addr, data)
         else:         #if self.state.debug and addr.start:
             print('OSCReceived("%s", %s)' % (addr, data))
-
 
     def refresh_connection(self): # the main loop
         """
