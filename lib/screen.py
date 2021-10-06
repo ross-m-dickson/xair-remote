@@ -91,12 +91,12 @@ class Screen:
     button_width = 320 - button_left - box_left/2
 
     #define strings
-    names = ("Bass", "Guitar", "Keys", "Sax", "Butch", "Ors", "Raluca", "Ross",
-             "Kick", "Snare", "Toms", "Hat", "Guest", "Guest", "Guest", "Itai")
+    names = ("Bass", "Guitar", "Keys", "Keys", "Sax", "Don", "Kick", "Snare",
+             "Raluca", "Ors",  "Itai", "Butch", "Ross", "Guest", "OL", "OR")
     words = []
     numbers = []
-    mic = ("1/4", "1/4", "1/4", "pga", "58", "ors", "58", "cm",
-           "pga", "58", "akg", "akg", "", "", "", "any")
+    mic = ("1/4", "1/4", "1/4", "1/4", "pga", "pga", "pga", "58",
+           "58", "ors", "Sms", "M80", "LCT", "", "040", "040")
     mics = []
     button_nm = ("Remote", "Record", "Auto Level", "Quit",
                  "Confirm", "Confirm", "Return", "Return")
